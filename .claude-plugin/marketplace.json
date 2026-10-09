@@ -1,0 +1,25 @@
+{
+  "name": "stop-slop-ko",
+  "owner": {
+    "name": "leeanJP",
+    "url": "https://github.com/leeanJP"
+  },
+  "metadata": {
+    "description": "한국어 실무문서에서 AI 티를 걷어내는 Claude Code 스킬 모음",
+    "version": "1.0.1"
+  },
+  "plugins": [
+    {
+      "name": "stop-slop-ko",
+      "source": "./plugins/stop-slop-ko",
+      "description": "한국어 문서의 AI 티(em-dash, 공백 가운뎃점 나열, 번역투, 조사 앞 공백)를 생성 단계부터 막고, 기존 문서를 정제하거나 다른 문서 톤에 맞춘다. docx/pptx/xlsx/md 스캐너 포함.",
+      "category": "productivity"
+    },
+    {
+      "name": "stakeholder-brief",
+      "source": "./plugins/stakeholder-brief",
+      "description": "개발 문서를 경영진, 고객 PM, 타팀 개발자 등 정해진 청중 눈높이의 공유 문서(HTML/DOCX/MD)로 재구성한다. stop-slop-ko와 함께 쓰는 것을 권장.",
+      "category": "productivity"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "stakeholder-brief",
+  "description": "개발 자료를 정해진 청중(경영진, 고객 PM, 타팀·고객 개발자) 눈높이의 공유 문서로 재구성하는 스킬",
+  "version": "1.0.1",
+  "author": {
+    "name": "leeanJP",
+    "url": "https://github.com/leeanJP"
+  },
+  "homepage": "https://github.com/leeanJP/stop-slop-ko",
+  "repository": "https://github.com/leeanJP/stop-slop-ko",
+  "license": "MIT",
+  "keywords": ["korean", "stakeholder", "report", "docx", "html", "한국어"]
+}

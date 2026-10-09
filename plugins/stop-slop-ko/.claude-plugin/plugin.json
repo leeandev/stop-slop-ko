@@ -1,0 +1,13 @@
+{
+  "name": "stop-slop-ko",
+  "description": "한국어 실무문서(회의록, 보고서, 제안서, 메일, pptx/docx/xlsx)에서 AI 티를 걷어내는 스킬과 스캐너",
+  "version": "1.0.1",
+  "author": {
+    "name": "leeanJP",
+    "url": "https://github.com/leeanJP"
+  },
+  "homepage": "https://github.com/leeanJP/stop-slop-ko",
+  "repository": "https://github.com/leeanJP/stop-slop-ko",
+  "license": "MIT",
+  "keywords": ["korean", "writing", "ai-slop", "stop-slop", "docx", "pptx", "한국어"]
+}
