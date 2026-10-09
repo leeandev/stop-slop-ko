@@ -1,12 +1,12 @@
 {
   "name": "stop-slop-ko",
   "owner": {
-    "name": "leeanJP",
-    "url": "https://github.com/leeanJP"
+    "name": "leeandev",
+    "url": "https://github.com/leeandev"
   },
   "metadata": {
     "description": "한국어 실무문서에서 AI 티를 걷어내는 Claude Code 스킬 모음",
-    "version": "1.0.1"
+    "version": "1.0.2"
   },
   "plugins": [
     {

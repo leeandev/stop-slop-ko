@@ -105,7 +105,7 @@ Claude Code 입력창에 한 줄씩 입력합니다.
 이 저장소를 플러그인 목록으로 등록합니다. 아직 아무것도 설치되지 않습니다.
 
 ```
-/plugin marketplace add leeanJP/stop-slop-ko
+/plugin marketplace add leeandev/stop-slop-ko
 ```
 
 **2단계. 필요한 플러그인 설치 (골라서)**
@@ -159,7 +159,7 @@ stakeholder-brief만 따로 설치해도 동작은 하지만, 마지막 문체 �
 The English stop-slop rules ("prefer active voice", "avoid lists of three") backfire in Korean, where noun-ending bullet style (`~함/~됨`) is the normal register of official documents. This version targets the real Korean signals instead: em-dashes, spaced middot lists, decorative symbols, translationese, and spaces before particles.
 
 ```
-/plugin marketplace add leeanJP/stop-slop-ko      # register the marketplace (once)
+/plugin marketplace add leeandev/stop-slop-ko      # register the marketplace (once)
 /plugin install stop-slop-ko@stop-slop-ko         # the main plugin
 /plugin install stakeholder-brief@stop-slop-ko    # optional: audience-specific briefs
 ```
