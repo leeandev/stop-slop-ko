@@ -5,8 +5,8 @@
     "url": "https://github.com/leeandev"
   },
   "metadata": {
-    "description": "한국어 실무문서에서 AI 티를 걷어내는 Claude Code 스킬 모음",
-    "version": "1.0.2"
+    "description": "한국어 문서의 AI 티를 걷어내는 스킬과 자소서 인터뷰 스킬 모음",
+    "version": "1.1.0"
   },
   "plugins": [
     {
@@ -19,6 +19,12 @@
       "name": "stakeholder-brief",
       "source": "./plugins/stakeholder-brief",
       "description": "개발 문서를 경영진, 고객 PM, 타팀 개발자 등 정해진 청중 눈높이의 공유 문서(HTML/DOCX/MD)로 재구성한다. stop-slop-ko와 함께 쓰는 것을 권장.",
+      "category": "productivity"
+    },
+    {
+      "name": "jasoseo",
+      "source": "./plugins/jasoseo",
+      "description": "자소서를 대신 지어 쓰지 않는다. 인터뷰로 본인 경험을 꺼내 경험 은행(jasoseo/stories.md)에 모으고, 카드의 사실과 본인 말투로만 초안을 쓴다. 글자 수 계산기 포함. stop-slop-ko 없이 단독 동작.",
       "category": "productivity"
     }
   ]

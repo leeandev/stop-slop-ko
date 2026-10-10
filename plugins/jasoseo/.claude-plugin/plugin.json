@@ -1,0 +1,13 @@
+{
+  "name": "jasoseo",
+  "description": "자소서를 대신 지어 쓰지 않고, 인터뷰로 본인 경험을 꺼내 경험 카드로 모은 뒤 본인 말투로 초안을 쓰는 스킬. 글자 수 계산기 포함",
+  "version": "1.1.0",
+  "author": {
+    "name": "leeandev",
+    "url": "https://github.com/leeandev"
+  },
+  "homepage": "https://github.com/leeandev/stop-slop-ko",
+  "repository": "https://github.com/leeandev/stop-slop-ko",
+  "license": "MIT",
+  "keywords": ["korean", "cover-letter", "resume", "job", "자소서", "자기소개서", "한국어"]
+}
