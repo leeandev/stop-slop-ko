@@ -3,6 +3,7 @@
 #   청중이 정해진 공유용 문서 -> stakeholder-brief 먼저, stop-slop-ko 마지막
 #   그 밖의 문서 산출물       -> stop-slop-ko 생성 모드
 # 판정은 (문서 키워드 또는 청중 키워드) + 작성 동사. `--selftest`로 판정표를 확인할 수 있다.
+# 자소서 요청은 jasoseo 플러그인 몫이라 끼어들지 않는다.
 import sys, json, re
 from pathlib import Path
 
@@ -16,6 +17,8 @@ AUDIENCE = re.compile(
 VERB = re.compile(r"만들|작성|써\s*줘|써줘|쓰고|정리|초안|생성|뽑아|다듬|편집|수정|고쳐|업데이트|반영|옮겨|채워")
 TONE = re.compile(r"AI\s*티|AI가\s*쓴|번역투|톤(에|을|으로)?\s*(맞|통일)|문체\s*통일", re.I)
 OPT_OUT = re.compile(r"stop-?slop[^\n]{0,15}(빼|없이|말고|제외|끄)|원문\s*그대로|문구\s*그대로")
+# 자소서는 jasoseo 플러그인이 자체 문체 규칙(서술형 ~습니다체)으로 맡는다. 개조식 생성 모드가 끼면 안 된다.
+JASOSEO = re.compile(r"자소서|자기\s*소개서")
 
 # 플러그인 루트 기준: hooks/ 옆의 skills/stop-slop-ko/scripts/slop_scan.py
 SCANNER = (Path(__file__).resolve().parent.parent / "skills" / "stop-slop-ko" / "scripts" / "slop_scan.py").as_posix()
@@ -46,7 +49,7 @@ MESSAGES = {
 def route(prompt):
     """(경로, 키워드) 또는 None."""
     head = prompt.lstrip()
-    if head.startswith("/stop-slop-ko") or OPT_OUT.search(prompt):
+    if head.startswith("/stop-slop-ko") or head.startswith("/jasoseo") or OPT_OUT.search(prompt) or JASOSEO.search(prompt):
         return None
     if head.startswith("/stakeholder-brief"):
         return "brief_explicit", "/stakeholder-brief"
@@ -79,6 +82,10 @@ SELFTEST = [
     ("/stop-slop-ko 이 문서", None),
     ("pptx 만들어줘 stop-slop 빼고", None),
     ("gradle 빌드 에러 고쳐줘", None),
+    ("/jasoseo A사 2번 초안 써줘", None),
+    ("자소서 초안 써줘", None),
+    ("자기소개서 1번 초안 다듬어줘", None),
+    ("자기 소개서 메일로 보낼 초안 만들어줘", None),
 ]
 
 
