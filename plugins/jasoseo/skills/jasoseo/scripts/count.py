@@ -12,8 +12,11 @@ import re
 import sys
 from pathlib import Path
 
-COMMENT = re.compile(r"<!--.*?-->[ \t]*\n?", re.S)
-HEADING = re.compile(r"^#{1,6}\s.*(?:\n|$)", re.M)
+# 메모만 있는 줄은 줄째로, 본문 사이에 낀 메모는 메모만 지운다(본문 줄바꿈은 남긴다).
+COMMENT_LINE = re.compile(r"^[ \t]*<!--.*?-->[ \t]*(?:\n|$)", re.S | re.M)
+COMMENT = re.compile(r"<!--.*?-->", re.S)
+# `#`만 있는 빈 제목도 제목이다. `\s`를 쓰면 줄바꿈을 넘어 다음 본문 줄까지 지운다.
+HEADING = re.compile(r"^#{1,6}(?:[ \t].*)?(?:\n|$)", re.M)
 GAP = re.compile(r"\[확인 필요[^\]]*\]")
 WS = re.compile(r"\s")
 LOW_PCT = 90
@@ -22,6 +25,7 @@ BASIS_LABEL = {"space": "공백 포함", "nospace": "공백 제외"}
 
 def body(text):
     text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = COMMENT_LINE.sub("", text)
     text = COMMENT.sub("", text)
     text = HEADING.sub("", text)
     return text.strip()
@@ -82,8 +86,8 @@ def report(name, c, limit=None, basis="space"):
     return "\n".join(lines), status
 
 
-def read(path):
-    data = Path(path).read_bytes()
+def decode(data):
+    """UTF-8(BOM 포함)로 읽고, 안 되면 Windows 메모장 ANSI(CP949)로 읽는다."""
     try:
         return data.decode("utf-8-sig")
     except UnicodeDecodeError:
@@ -105,12 +109,16 @@ def main(argv=None):
     if a.files:
         for f in a.files:
             try:
-                sources.append((f, read(f)))
+                sources.append((f, decode(Path(f).read_bytes())))
             except (OSError, UnicodeDecodeError) as e:
                 print(f"읽을 수 없음: {f} ({e})", file=sys.stderr)
                 return 2
     else:
-        sources.append(("stdin", sys.stdin.buffer.read().decode("utf-8-sig", errors="replace")))
+        try:
+            sources.append(("stdin", decode(sys.stdin.buffer.read())))
+        except UnicodeDecodeError as e:
+            print(f"읽을 수 없음: stdin ({e})", file=sys.stderr)
+            return 2
     over = False
     for name, text in sources:
         out, status = report(name, count(text), a.limit, a.basis)

@@ -37,6 +37,12 @@ class CountTest(unittest.TestCase):
         text = "<!--\n메모\n-->\n본문"
         self.assertEqual(C.count(text)["space"], 2)
 
+    def test_bare_hash_line_keeps_next_line(self):
+        self.assertEqual(C.count("#\n본문입니다.\n다음")["space"], 9)
+
+    def test_inline_comment_keeps_newline(self):
+        self.assertEqual(C.count("앞<!-- 메모 -->\n뒤")["space"], 3)
+
     def test_emoji_not_in_euckr(self):
         c = C.count("좋아👍")
         self.assertEqual(c["space"], 3)
@@ -100,6 +106,15 @@ class CliTest(unittest.TestCase):
         r = subprocess.run([sys.executable, str(SCRIPT)], input="가나".encode("utf-8"), capture_output=True)
         self.assertEqual(r.returncode, 0)
         self.assertIn("공백 포함 2자", r.stdout.decode("utf-8"))
+
+    def test_stdin_cp949(self):
+        r = subprocess.run([sys.executable, str(SCRIPT)], input="가나다".encode("cp949"), capture_output=True)
+        self.assertEqual(r.returncode, 0)
+        self.assertIn("공백 포함 3자", r.stdout.decode("utf-8"))
+
+    def test_stdin_undecodable_exit2(self):
+        r = subprocess.run([sys.executable, str(SCRIPT)], input=b"\xff", capture_output=True)
+        self.assertEqual(r.returncode, 2)
 
 
 if __name__ == "__main__":
