@@ -64,12 +64,13 @@ RESULT: PASS (WARN 0)
 
 ## 들어 있는 것
 
-이 저장소는 Claude Code 플러그인 마켓플레이스이고, 플러그인 두 개가 들어 있습니다. 필요한 것만 설치하면 됩니다.
+이 저장소는 Claude Code 플러그인 마켓플레이스이고, 플러그인 세 개가 들어 있습니다. 필요한 것만 설치하면 됩니다.
 
 | 플러그인 | 하는 일 |
 |---|---|
 | **stop-slop-ko** | 한국어 문서를 쓸 때(생성), 다듬을 때(정제), 다른 문서 톤에 맞출 때(톤 맞춤) 문체 규칙을 적용. 스캐너와 자동 적용 훅 포함 |
 | **stakeholder-brief** | 설계서, 분석 문서, 진행 현황을 경영진, 고객 PM, 타팀 개발자 등 정해진 청중 눈높이로 다시 구성해 HTML/DOCX/MD로 출력. 마지막 문체 정리는 stop-slop-ko에 맡김 |
+| **jasoseo** | 자소서를 대신 지어 쓰지 않고, 인터뷰로 본인 경험을 꺼내 경험 은행에 모은 뒤 본인 말투로 초안을 씀. 글자 수 계산기 포함 |
 
 ### stop-slop-ko
 
@@ -96,6 +97,27 @@ python plugins/stop-slop-ko/skills/stop-slop-ko/scripts/slop_scan.py 보고서.d
 - 문서 유형은 두 가지입니다. 진행과 합의를 전하는 **합의형**(요약 → 현황 → 합의된 결정 → 미결 → 다음 단계), 도구나 절차를 알려 주는 **가이드형**(한눈에 보기 → 왜 필요한가 → 설치 → 사용 예시 → 한계)입니다.
 - **원문에 없는 진척률, 일정, 결정은 지어내지 않습니다.** 없으면 "미정", "확인 필요"로 남깁니다.
 
+### jasoseo
+
+자소서를 Claude에게 통째로 맡기면 누구나 쓸 수 있는 글이 나옵니다. 기업이 거르는 글이 바로 그런 글입니다. jasoseo는 반대로 갑니다.
+
+- **인터뷰**: 문항 유형(지원동기, 성장과정, 직무역량, 갈등·실패, 입사 후 포부)에 맞춰 한 번에 1~2개씩 묻습니다. "열심히 했다", "소통했다" 같은 답에는 "예를 들면요?"로 다시 묻습니다.
+- **경험 은행**: 답은 작업 폴더의 `jasoseo/stories.md`에 경험 카드로 쌓입니다. 다음 회사 자소서에서 다시 꺼내 씁니다.
+- **초안**: 카드에 있는 사실과 본인이 한 말로만 씁니다. 카드에 없는 숫자나 역할은 만들지 않고 `[확인 필요: ...]`로 비워 둡니다.
+- **글자 수**: `count.py`가 공백 포함, 공백 제외, 바이트까지 셉니다. 초안은 제한의 90~100%에 맞춥니다.
+- **점검 리포트**: 근거 없는 문장, 뻔한 문장, 문체 문제를 짚습니다.
+
+```
+[점검] A사 백엔드 2번
+- 글자 수: 공백 포함 662/700자 (94%), 범위 안
+- 근거 없는 문장: 3문단 "팀을 이끌며" (S03에 리더 역할 없음)
+- 확인 필요: 1곳 (기능 추가를 원한 팀원 수)
+- 뻔한 문장: "소통의 중요성을 깨달았습니다" (S03의 본인 말로 바꾸기 제안)
+- 문체: 위반 없음
+```
+
+AI 검사기를 피하는 도구가 아닙니다. 본인 경험과 말투로 쓴 글이 면접까지 버팁니다. stop-slop-ko 없이 혼자 동작합니다.
+
 ## 설치
 
 Claude Code 입력창에 한 줄씩 입력합니다.
@@ -114,6 +136,7 @@ Claude Code 입력창에 한 줄씩 입력합니다.
 |---|---|
 | 한국어 문서의 AI 티만 빼고 싶다 (대부분 이것) | stop-slop-ko만 |
 | 경영진용, 고객 PM용 같은 공유 문서도 만들고 싶다 | 둘 다 |
+| 자소서를 쓰려고 한다 | jasoseo (단독으로 동작) |
 
 stop-slop-ko 설치 (기본):
 
@@ -125,6 +148,12 @@ stakeholder-brief 설치 (공유 문서도 만들 때만 추가):
 
 ```
 /plugin install stakeholder-brief@stop-slop-ko
+```
+
+jasoseo 설치 (자소서를 쓸 때):
+
+```
+/plugin install jasoseo@stop-slop-ko
 ```
 
 stakeholder-brief만 따로 설치해도 동작은 하지만, 마지막 문체 정리를 stop-slop-ko에 맡기도록 만들어져 있어서 둘 다 설치하는 것을 권장합니다.
@@ -145,16 +174,19 @@ stakeholder-brief만 따로 설치해도 동작은 하지만, 마지막 문체 �
 14~17장을 1~13장 톤에 맞춰줘
 이 설계 문서 경영진용 1페이지 브리프로 정리해줘
 /stop-slop-ko:stop-slop-ko 보고서.md
+자소서 써줘. A사 백엔드 2번 문항, 공백 포함 700자
+/jasoseo:jasoseo
 ```
 
 플러그인 스킬은 `플러그인:스킬` 이름으로 직접 부릅니다(`/stop-slop-ko:stop-slop-ko`, `/stakeholder-brief:stakeholder-brief`). 대부분은 위처럼 평소 말투로 요청하면 알아서 쓰입니다.
 
 ## English
 
-**stop-slop-ko** is a Claude Code plugin marketplace with two plugins for Korean business writing.
+**stop-slop-ko** is a Claude Code plugin marketplace with three plugins for Korean business writing.
 
 - **stop-slop-ko**: removes AI tells from Korean documents. It has three modes: write (generate clean text from the start), de-slop (fix punctuation and translationese only, without touching facts or sentence endings), and tone-match (copy the style signature of a reference document). It ships with `slop_scan.py`, a stdlib-only scanner for docx/pptx/xlsx/md/txt/html, and a prompt hook that routes document requests to the skill.
 - **stakeholder-brief**: rewrites dev material (design docs, status, analyses) for one audience at a time (executives, customer PMs, other-team engineers, customer engineers) and renders HTML, DOCX, or MD. It never invents progress, dates, or decisions that the source does not contain.
+- **jasoseo**: a Korean cover letter (자기소개서) coach. It interviews the user, stores their real experiences as reusable story cards, drafts only from those cards in the user's own voice, marks missing facts as `[확인 필요]` instead of inventing them, and counts characters the way Korean job sites do. It works without stop-slop-ko.
 
 The English stop-slop rules ("prefer active voice", "avoid lists of three") backfire in Korean, where noun-ending bullet style (`~함/~됨`) is the normal register of official documents. This version targets the real Korean signals instead: em-dashes, spaced middot lists, decorative symbols, translationese, and spaces before particles.
 
@@ -162,6 +194,7 @@ The English stop-slop rules ("prefer active voice", "avoid lists of three") back
 /plugin marketplace add leeandev/stop-slop-ko      # register the marketplace (once)
 /plugin install stop-slop-ko@stop-slop-ko         # the main plugin
 /plugin install stakeholder-brief@stop-slop-ko    # optional: audience-specific briefs
+/plugin install jasoseo@stop-slop-ko              # optional: Korean cover letter interviews
 ```
 
 ## 라이선스
