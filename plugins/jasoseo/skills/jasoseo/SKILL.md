@@ -26,7 +26,7 @@ description: Use when the user is writing a Korean job application cover letter 
 4. **인터뷰**: `references/question-bank.md`. 한 번에 질문 1~2개. 추상적인 답은 "되묻기" 규칙대로 다시 묻는다.
 5. **카드 저장**: `references/story-card.md` 양식으로 `jasoseo/stories.md`에 추가하거나 고치고, 바뀐 카드를 보여 준다.
 6. **초안**: `references/draft-rules.md`와 `references/jasoseo-style.md`를 따라 쓰고 `jasoseo/<회사>-<직무>/<문항번호>.md`에 저장한다. 글자 수를 재 제한의 90~100%에 맞춘다.
-7. **점검 리포트**: `references/draft-rules.md`의 "점검 리포트" 양식. 사용자가 고친 본문을 주면 다시 낸다.
+7. **보여 주기와 점검 리포트**: 초안 본문 전체와 `references/draft-rules.md`의 "점검 리포트"를 같은 응답에서 보여 준다. 파일만 저장하고 끝내지 않는다. 카드로 90%를 못 채우면 지어내서 늘리지 말고 부족한 글자 수와 채울 방법을 리포트에 적는다. 사용자가 고친 본문을 주면 다시 낸다.
 8. **사용 이력**: 쓴 카드의 사용 이력을 갱신한다.
 
 카드가 이미 충분하면 3에서 6으로 간다. 사용자가 직접 쓴 자소서 첨삭을 부탁하면 7부터 한다. 이때 카드가 없으면 본문에 나온 사실을 카드로 옮길지 먼저 묻는다.
