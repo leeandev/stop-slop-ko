@@ -85,7 +85,8 @@ tests/test_count.py
 함께 바꾸는 곳:
 
 - `.claude-plugin/marketplace.json`: jasoseo 항목 추가, 버전 1.0.2 → 1.1.0
-- `README.md`: jasoseo 소개 절과 Before/After
+- `plugins/stop-slop-ko/hooks/stop-slop-doc-reminder.py`: `/jasoseo`로 시작하거나 "자소서", "자기소개서"가 들어간 요청에서는 끼어들지 않는다. "초안"이 문서 키워드이자 작성 동사라 그대로 두면 자소서 요청을 개조식 문서 작성으로 판정한다. stop-slop-ko 플러그인 버전도 1.1.0으로 올린다
+- `README.md`: jasoseo 소개 절과 점검 리포트 예시
 - 허브 `D:\dev\code\CLAUDE.md` 프로젝트 표의 stop-slop-ko 설명
 
 `jasoseo-style.md`는 이후 stop-slop-ko 에세이·자소서 문체 모드(별도 작업)의 재료로 재사용한다.
