@@ -71,6 +71,26 @@ def is_heading(text):
     return text.lstrip().startswith("#")
 
 
+LIST_ITEM = re.compile(r"^\s*([-*+]|\d+[.)])\s")
+
+
+def split_paragraphs(paras, group_lines=False):
+    """판정용 문단 목록. 셀 안의 빈 줄은 문단을 나누고, md/txt는 빈 줄 없이 이어진 줄을 한 문단으로 묶는다.
+    제목 줄과 목록 항목은 따로 센다."""
+    out, prev_n = [], None
+    for where, text in paras:
+        m = re.fullmatch(r"L(\d+)", where) if group_lines else None
+        n = int(m.group(1)) if m else None
+        alone = is_heading(text) or LIST_ITEM.match(text)
+        if (n is not None and prev_n is not None and n == prev_n + 1 and not alone and out
+                and not is_heading(out[-1][1]) and not LIST_ITEM.match(out[-1][1])):
+            out[-1] = (out[-1][0], out[-1][1] + " " + text.strip())
+        else:
+            out.extend((where, part) for part in re.split(r"\n\s*\n", text) if HANGUL.search(part))
+        prev_n = n
+    return out
+
+
 def prose_totals(paras, show_info):
     """문서 전체 기준 서술형 신호. paras = [(where, text)] (한글 있는 본문 문단)."""
     hits = []
@@ -259,7 +279,8 @@ def scan(path, show_info, prose=False):
         hits.append(("INFO", "QUOTE_MIX", "(문서 전체)",
                      f"곡선 {quotes['curly']} / 곧은 {quotes['straight']}", "문서 기존 관례로 통일"))
     if prose:
-        hits.extend(prose_totals(paras, show_info))
+        group = path.suffix.lower() in (".md", ".txt")
+        hits.extend(prose_totals(split_paragraphs(paras, group), show_info))
     return hits
 
 

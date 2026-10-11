@@ -19,11 +19,13 @@ TONE = re.compile(r"AI\s*티|AI가\s*쓴|번역투|톤(에|을|으로)?\s*(맞|�
 OPT_OUT = re.compile(r"stop-?slop[^\n]{0,15}(빼|없이|말고|제외|끄)|원문\s*그대로|문구\s*그대로")
 # 자소서는 jasoseo가 설치·활성화돼 있으면 그쪽 몫. 없으면 서술형 글로 본다.
 JASOSEO = re.compile(r"자소서|자기\s*소개서")
-# 서술형 글. 개조식 문서 키워드(FORMAL)가 같이 오면 개조식이 이긴다("과제 보고서").
-# "과제"만으로는 회사 업무 과제와 구분이 안 되어 학교 맥락이 붙을 때만 본다.
-PROSE = re.compile(r"리포트|레포트|에세이|과제물|(수업|대학|학교|교양|전공)\s*과제|과제\s*(글|리포트|레포트|에세이)|"
-                   r"소논문|독후감|감상문|블로그\s*(글|포스트|포스팅)|칼럼|기고문?")
-# 개발 산출물 리포트는 서술형 글이 아니다.
+# 서술형 글. "과제"만으로는 회사 업무 과제와 구분이 안 되어 학교 맥락이 붙을 때만 본다.
+# 데이터 표의 "칼럼 이름/추가" 같은 말은 빼고, "문단 글/서술형"은 사용자가 문단 글을 원한다는 뜻으로 본다.
+PROSE_STRONG = re.compile(r"에세이|과제물|(수업|대학|학교|교양|전공)\s*과제|과제\s*(글|리포트|레포트|에세이)|소논문|독후감|감상문|"
+                          r"블로그\s*(글|포스트|포스팅)|칼럼(?!\s*(이름|명|추가|삭제|타입|값|순서|수|폭|너비))|기고문?|"
+                          r"문단\s*글|서술형")
+# 리포트·레포트는 개조식 문서 키워드(FORMAL)나 개발 리포트와 같이 오면 서술형으로 보지 않는다("리포트 형식 보고서", "버그 리포트").
+PROSE_WEAK = re.compile(r"리포트|레포트")
 DEV_REPORT = re.compile(r"(버그|에러|오류|장애|테스트|커버리지|성능|빌드|크래시|bug|error|test|coverage|crash)\s*(리포트|레포트)", re.I)
 FORMAL = re.compile(r"회의록|보고서|주간보고|제안서|기획서|계획서|설계서|정의서|결과서|명세서|매뉴얼|안내문|공문|"
                     r"장표|슬라이드|\bppt|pptx|파워포인트|엑셀|xlsx|스프레드시트", re.I)
@@ -71,13 +73,14 @@ def jasoseo_active(home=None):
             return False
     except Exception:
         return False
+    settings_path = home / "settings.json"
+    if not settings_path.exists():
+        return True
     try:
-        settings = json.loads((home / "settings.json").read_text(encoding="utf-8"))
-        if settings.get("enabledPlugins", {}).get(JASOSEO_ID) is False:
-            return False
+        settings = json.loads(settings_path.read_text(encoding="utf-8"))
+        return settings.get("enabledPlugins", {}).get(JASOSEO_ID) is not False
     except Exception:
-        pass
-    return True
+        return False
 
 
 def route(prompt, jasoseo=None):
@@ -95,9 +98,13 @@ def route(prompt, jasoseo=None):
     if verb and aud:
         return "brief", aud.group(0)
     tone = TONE.search(prompt)
-    prose = jas or PROSE.search(prompt)
-    if prose and (verb or tone) and not FORMAL.search(prompt) and not DEV_REPORT.search(prompt):
-        return "prose", prose.group(0)
+    if verb or tone:
+        prose = jas or PROSE_STRONG.search(prompt)
+        if prose:
+            return "prose", prose.group(0)
+        weak = PROSE_WEAK.search(prompt)
+        if weak and not FORMAL.search(prompt) and not DEV_REPORT.search(prompt):
+            return "prose", weak.group(0)
     if tone:
         return "slop", tone.group(0)
     doc = DOC.search(prompt)

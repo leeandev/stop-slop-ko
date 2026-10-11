@@ -38,6 +38,9 @@ class JasoseoActive(unittest.TestCase):
     def test_not_installed(self):
         self.assertFalse(H.jasoseo_active(home(json.dumps({"version": 2, "plugins": {}}))))
 
+    def test_broken_settings_is_absent(self):
+        self.assertFalse(H.jasoseo_active(home(INSTALLED, "{broken")))
+
     def test_missing_or_broken(self):
         self.assertFalse(H.jasoseo_active(home()))
         self.assertFalse(H.jasoseo_active(home("{broken")))
@@ -60,6 +63,14 @@ class Route(unittest.TestCase):
     def test_academic_task_prose(self):
         self.assertEqual(self.kind("수업 과제 글 써줘"), "prose")
         self.assertEqual(self.kind("과제물 다듬어줘"), "prose")
+
+    def test_strong_prose_beats_formal_reference(self):
+        self.assertEqual(self.kind("보고서를 참고해서 블로그 글 써줘"), "prose")
+        self.assertEqual(self.kind("보고서를 문단 글로 다듬어줘"), "prose")
+
+    def test_data_column_not_prose(self):
+        self.assertIsNone(self.kind("이 CSV의 칼럼 이름 수정해줘"))
+        self.assertEqual(self.kind("신문 칼럼 써줘"), "prose")
 
     def test_report_stays_gaejo(self):
         self.assertEqual(self.kind("과제 보고서 써줘"), "slop")

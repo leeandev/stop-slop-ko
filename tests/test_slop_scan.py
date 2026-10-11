@@ -104,6 +104,17 @@ class ConnectorWarn(Base):
         self.assertIn("PROSE_CONNECTOR", self.codes(lines))
 
 
+class ParagraphGrouping(Base):
+    def test_md_wrapped_lines_are_one_paragraph(self):
+        p = Path(tempfile.mkdtemp()) / "t.md"
+        p.write_text(FILLER + "\n또한 한 줄.\n따라서 두 줄.\n그러므로 세 줄.\n", encoding="utf-8")
+        self.assertNotIn("PROSE_CONNECTOR", [h[1] for h in S.scan(p, True, True)])
+
+    def test_blank_line_paragraphs_in_one_cell(self):
+        paras = [("A1", "\n\n".join([FILLER, "또한 하나.", "또한 둘.", "또한 셋."]))]
+        self.assertIn("PROSE_CONNECTOR", [h[1] for h in S.prose_totals(S.split_paragraphs(paras), True)])
+
+
 class Cli(Base):
     def run_cli(self, *args):
         return subprocess.run([sys.executable, str(SCRIPT), *args], capture_output=True)
