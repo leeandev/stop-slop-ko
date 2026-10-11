@@ -68,7 +68,7 @@ RESULT: PASS (WARN 0)
 
 | 플러그인 | 하는 일 |
 |---|---|
-| **stop-slop-ko** | 한국어 문서를 쓸 때(생성), 다듬을 때(정제), 다른 문서 톤에 맞출 때(톤 맞춤) 문체 규칙을 적용. 스캐너와 자동 적용 훅 포함 |
+| **stop-slop-ko** | 한국어 문서를 쓸 때(생성), 다듬을 때(정제), 다른 문서 톤에 맞출 때(톤 맞춤) 문체 규칙을 적용. 리포트, 에세이, 블로그 같은 서술형 글도 다룸. 스캐너와 자동 적용 훅 포함 |
 | **stakeholder-brief** | 설계서, 분석 문서, 진행 현황을 경영진, 고객 PM, 타팀 개발자 등 정해진 청중 눈높이로 다시 구성해 HTML/DOCX/MD로 출력. 마지막 문체 정리는 stop-slop-ko에 맡김 |
 | **jasoseo** | 자소서를 대신 지어 쓰지 않고, 인터뷰로 본인 경험을 꺼내 경험 은행에 모은 뒤 본인 말투로 초안을 씀. 글자 수 계산기 포함 |
 
@@ -89,7 +89,24 @@ python plugins/stop-slop-ko/skills/stop-slop-ko/scripts/slop_scan.py 보고서.d
 - exit 0 = PASS, 1 = FAIL(WARN 있음), 2 = 입력 오류
 - 상투구, 과한 명사화, 기계적인 3단 병렬은 스캐너가 못 잡습니다. 그 부분은 스킬이 읽고 판단합니다.
 
-**자동 적용 훅**: "회의록 만들어줘", "보고서 pptx로", "AI 티 빼줘" 같은 요청을 감지하면 스킬을 쓰라고 Claude에게 알려 줍니다. "경영진용", "공유용", "브리프"처럼 청중이 정해진 요청이면 stakeholder-brief를 먼저 쓰라고 안내합니다. 요청에 "stop-slop 빼고"나 "원문 그대로"를 넣으면 끼어들지 않습니다.
+**내가 쓴 글 다듬기**: 리포트, 과제, 에세이, 블로그 글, 칼럼처럼 문단으로 이어 쓰는 글도 같은 세 모드로 다룹니다. 개조식으로 바꾸지 않고 문단 서술을 유지하며, 다듬을 때 `~다`와 `~습니다` 같은 종결어미는 그대로 둡니다. 서술형 글에 자주 끼는 상투구를 걷어냅니다.
+
+| 전 | 후 |
+|---|---|
+| 오늘은 Docker 볼륨에 대해 알아보겠습니다. 정말 많은 분들이 헷갈려 하시는 부분입니다. | (삭제) 본론 "컨테이너를 지우면 안에 쓴 파일도 함께 사라집니다."부터 시작 |
+| 기록이 남으면서 결정이 뒤집히는 일이 줄었다고 생각한다. … 이번 경험을 통해 소통의 중요성을 깨달았다. | 기록이 남으면서 결정이 뒤집히는 일이 줄었다. |
+
+스캐너에 `--prose`를 붙이면 서술형 신호도 검사합니다.
+
+```bash
+python plugins/stop-slop-ko/skills/stop-slop-ko/scripts/slop_scan.py 리포트.md --prose --info
+```
+
+- INFO(위치만 알림): 교훈형 마무리("~의 중요성을 깨달았다"), "단순한 ~이 아닌", 명언으로 시작하는 첫 문단, 빈 강조어("정말", "매우"), 리포트·블로그 상투구
+- WARN(글 전체 기준): "~라고 생각한다"가 3회 이상이면서 1,000자당 1회 이상, 연결어("또한", "나아가")로 시작하는 문단이 3개 이상이면서 전체 문단의 25% 이상. 긴 글일수록 기준이 올라가서 정상적인 빈도는 걸리지 않습니다
+- 사실, 수치, 출처를 지어내지 않습니다. 고칠 문장에 근거가 없으면 지우거나 묻습니다
+
+**자동 적용 훅**: "회의록 만들어줘", "보고서 pptx로", "AI 티 빼줘" 같은 요청을 감지하면 스킬을 쓰라고 Claude에게 알려 줍니다. "경영진용", "공유용", "브리프"처럼 청중이 정해진 요청이면 stakeholder-brief를 먼저 쓰라고 안내합니다. "리포트 써줘", "블로그 글 다듬어줘" 같은 서술형 요청이면 서술형 문체로 안내합니다. 자소서 요청은 jasoseo가 설치돼 있으면 jasoseo에 맡기고, 없으면 서술형 글로 다룹니다. 요청에 "stop-slop 빼고"나 "원문 그대로"를 넣으면 끼어들지 않습니다.
 
 ### stakeholder-brief
 
@@ -171,6 +188,7 @@ stakeholder-brief만 따로 설치해도 동작은 하지만, 마지막 문체 �
 ```
 주간 회의록 docx로 만들어줘. 녹취는 meeting.txt
 이 제안서 3장 AI 티 빼줘
+이 블로그 글 다듬어줘. 파일은 post.md
 14~17장을 1~13장 톤에 맞춰줘
 이 설계 문서 경영진용 1페이지 브리프로 정리해줘
 /stop-slop-ko:stop-slop-ko 보고서.md
@@ -184,7 +202,7 @@ stakeholder-brief만 따로 설치해도 동작은 하지만, 마지막 문체 �
 
 **stop-slop-ko** is a Claude Code plugin marketplace with three plugins for Korean business writing.
 
-- **stop-slop-ko**: removes AI tells from Korean documents. It has three modes: write (generate clean text from the start), de-slop (fix punctuation and translationese only, without touching facts or sentence endings), and tone-match (copy the style signature of a reference document). It ships with `slop_scan.py`, a stdlib-only scanner for docx/pptx/xlsx/md/txt/html, and a prompt hook that routes document requests to the skill.
+- **stop-slop-ko**: removes AI tells from Korean documents. It has three modes: write (generate clean text from the start), de-slop (fix punctuation and translationese only, without touching facts or sentence endings), and tone-match (copy the style signature of a reference document). It also handles prose (reports, essays, blog posts, columns) without changing the sentence endings the author chose. It ships with `slop_scan.py`, a stdlib-only scanner for docx/pptx/xlsx/md/txt/html (`--prose` adds length-aware checks for prose clichés), and a prompt hook that routes document requests to the skill.
 - **stakeholder-brief**: rewrites dev material (design docs, status, analyses) for one audience at a time (executives, customer PMs, other-team engineers, customer engineers) and renders HTML, DOCX, or MD. It never invents progress, dates, or decisions that the source does not contain.
 - **jasoseo**: a Korean cover letter (자기소개서) coach. It interviews the user, stores their real experiences as reusable story cards, drafts only from those cards in the user's own voice, marks missing facts as `[확인 필요]` instead of inventing them, and counts characters the way Korean job sites do. It works without stop-slop-ko.
 

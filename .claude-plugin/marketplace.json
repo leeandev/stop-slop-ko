@@ -6,13 +6,13 @@
   },
   "metadata": {
     "description": "한국어 문서의 AI 티를 걷어내는 스킬과 자소서 인터뷰 스킬 모음",
-    "version": "1.1.0"
+    "version": "1.2.0"
   },
   "plugins": [
     {
       "name": "stop-slop-ko",
       "source": "./plugins/stop-slop-ko",
-      "description": "한국어 문서의 AI 티(em-dash, 공백 가운뎃점 나열, 번역투, 조사 앞 공백)를 생성 단계부터 막고, 기존 문서를 정제하거나 다른 문서 톤에 맞춘다. docx/pptx/xlsx/md 스캐너 포함.",
+      "description": "한국어 문서의 AI 티(em-dash, 공백 가운뎃점 나열, 번역투, 조사 앞 공백)를 생성 단계부터 막고, 기존 문서를 정제하거나 다른 문서 톤에 맞춘다. 리포트·에세이·블로그 같은 서술형 글도 다룬다. docx/pptx/xlsx/md 스캐너 포함.",
       "category": "productivity"
     },
     {
