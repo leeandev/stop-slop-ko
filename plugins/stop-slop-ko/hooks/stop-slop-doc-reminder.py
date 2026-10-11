@@ -22,11 +22,16 @@ JASOSEO = re.compile(r"자소서|자기\s*소개서")
 # 서술형 글. "과제"만으로는 회사 업무 과제와 구분이 안 되어 학교 맥락이 붙을 때만 본다.
 # 데이터 표의 "칼럼 이름/추가" 같은 말은 빼고, "문단 글/서술형"은 사용자가 문단 글을 원한다는 뜻으로 본다.
 PROSE_STRONG = re.compile(r"에세이|과제물|(수업|대학|학교|교양|전공)\s*과제|과제\s*(글|리포트|레포트|에세이)|소논문|독후감|감상문|"
-                          r"블로그\s*(글|포스트|포스팅)|칼럼(?!\s*(이름|명|추가|삭제|타입|값|순서|수|폭|너비))|기고문?|"
+                          r"블로그\s*(글|포스트|포스팅)|칼럼|기고문?|"
                           r"문단\s*글|서술형")
 # 리포트·레포트는 개조식 문서 키워드(FORMAL)나 개발 리포트와 같이 오면 서술형으로 보지 않는다("리포트 형식 보고서", "버그 리포트").
 PROSE_WEAK = re.compile(r"리포트|레포트")
-DEV_REPORT = re.compile(r"(버그|에러|오류|장애|테스트|커버리지|성능|빌드|크래시|bug|error|test|coverage|crash)\s*(리포트|레포트)", re.I)
+# 개발·업무 리포트(사이에 한 단어가 끼어도: "버그 분석 리포트", "매출 분석 리포트")는 개조식이다.
+WORK_REPORT = re.compile(r"(버그|에러|오류|장애|테스트|커버리지|성능|빌드|크래시|QA|bug|error|test|coverage|crash|"
+                         r"주간|월간|일간|일일|분기|매출|실적)(\s+\S+)?\s*(리포트|레포트)", re.I)
+# 데이터 표의 칼럼(열) 이야기면 칼럼 글이 아니다.
+DATA_COLUMN = re.compile(r"칼럼[을를이가은는의]?\s*(이름|명|추가|삭제|타입|값|순서|수|폭|너비)|"
+                         r"\bDB\b|테이블|CSV|SQL|스키마|데이터|엑셀|시트|(?<![가-힣])표(?![가-힣])", re.I)
 FORMAL = re.compile(r"회의록|보고서|주간보고|제안서|기획서|계획서|설계서|정의서|결과서|명세서|매뉴얼|안내문|공문|"
                     r"장표|슬라이드|\bppt|pptx|파워포인트|엑셀|xlsx|스프레드시트", re.I)
 JASOSEO_ID = "jasoseo@stop-slop-ko"
@@ -100,24 +105,13 @@ def route(prompt, jasoseo=None):
     tone = TONE.search(prompt)
     if verb or tone:
         prose = jas or PROSE_STRONG.search(prompt)
+        if prose and prose.group(0) == "칼럼" and DATA_COLUMN.search(prompt):
+            prose = None
         if prose:
             return "prose", prose.group(0)
         weak = PROSE_WEAK.search(prompt)
-        if weak and not FORMAL.search(prompt) and not DEV_REPORT.search(prompt):
+        if weak and not FORMAL.search(prompt) and not WORK_REPORT.search(prompt):
             return "prose", weak.group(0)
-    if tone:
-        return "slop", tone.group(0)
-    doc = DOC.search(prompt)
-    if verb and doc:
-        return "slop", doc.group(0)
-    return None
-    if head.startswith("/stakeholder-brief"):
-        return "brief_explicit", "/stakeholder-brief"
-    verb = VERB.search(prompt)
-    aud = AUDIENCE.search(prompt)
-    if verb and aud:
-        return "brief", aud.group(0)
-    tone = TONE.search(prompt)
     if tone:
         return "slop", tone.group(0)
     doc = DOC.search(prompt)
@@ -177,6 +171,8 @@ def main():
     try:
         hook = json.loads(sys.stdin.buffer.read().decode("utf-8", errors="replace"))
     except Exception:
+        sys.exit(0)
+    if not isinstance(hook, dict):
         sys.exit(0)
     hit = route(hook.get("prompt") or "")
     if not hit:

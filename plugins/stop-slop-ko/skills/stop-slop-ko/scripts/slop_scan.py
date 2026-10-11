@@ -60,7 +60,7 @@ PROSE_RULES = [
      re.compile(r"오늘은\s[^.\n]{0,30}알아보(겠|도록|려고)|도움이\s*되(셨|었)(길|으면)|시작해\s*볼까요|꿀팁"),
      "블로그 상투구: 인사 대신 본론"),
 ]
-QUOTE_OPEN = re.compile(r"^\s*[“\"「『‘']|사전적\s*(의미|정의)|사전에\s*(따르면|서는)|(이)?라는\s*말(이\s*있|처럼)")
+QUOTE_OPEN = re.compile(r"^\s*(>\s*)?[“\"「『‘']|사전적\s*(의미|정의)|사전에\s*(따르면|서는)|(이)?라는\s*말(이\s*있|처럼)")
 THINK = re.compile(r"[다라]고\s*생각(한다|합니다|했다|했습니다|해요)")
 CONNECTOR = re.compile(r"^\s*(또한|나아가|더불어|결론적으로|이처럼|이를\s*통해|따라서|그러므로|뿐만\s*아니라)[,\s]")
 THINK_MIN, THINK_PER_CHARS = 3, 1000
@@ -74,11 +74,28 @@ def is_heading(text):
 LIST_ITEM = re.compile(r"^\s*([-*+]|\d+[.)])\s")
 
 
-def split_paragraphs(paras, group_lines=False):
-    """판정용 문단 목록. 셀 안의 빈 줄은 문단을 나누고, md/txt는 빈 줄 없이 이어진 줄을 한 문단으로 묶는다.
-    제목 줄과 목록 항목은 따로 센다."""
+def front_matter_end(path):
+    """md 머리말(--- ... ---)의 마지막 줄 번호. 없으면 0."""
+    lines = Path(path).read_text(encoding="utf-8").splitlines()
+    if not lines or lines[0].strip() != "---":
+        return 0
+    for n, line in enumerate(lines[1:], 2):
+        if line.strip() == "---":
+            return n
+    return 0
+
+
+def split_paragraphs(paras, group_lines=False, skip_until=0):
+    """판정용 문단 목록. 셀 안의 빈 줄은 문단을 나누고, md는 빈 줄 없이 이어진 줄을 한 문단으로 묶는다.
+    제목 줄과 목록 항목은 따로 세고, 표 셀과 머리말(skip_until 줄까지)은 문단으로 세지 않는다."""
     out, prev_n = [], None
     for where, text in paras:
+        if where.endswith("(표)"):
+            prev_n = None
+            continue
+        line_no = re.match(r"L(\d+)", where)
+        if line_no and int(line_no.group(1)) <= skip_until:
+            continue
         m = re.fullmatch(r"L(\d+)", where) if group_lines else None
         n = int(m.group(1)) if m else None
         alone = is_heading(text) or LIST_ITEM.match(text)
@@ -279,8 +296,10 @@ def scan(path, show_info, prose=False):
         hits.append(("INFO", "QUOTE_MIX", "(문서 전체)",
                      f"곡선 {quotes['curly']} / 곧은 {quotes['straight']}", "문서 기존 관례로 통일"))
     if prose:
-        group = path.suffix.lower() in (".md", ".txt")
-        hits.extend(prose_totals(split_paragraphs(paras, group), show_info))
+        # txt는 줄바꿈 하나로 문단을 나누는 글(웹 폼·HWP에서 복사)이 많아 묶지 않는다
+        is_md = path.suffix.lower() == ".md"
+        skip = front_matter_end(path) if is_md else 0
+        hits.extend(prose_totals(split_paragraphs(paras, is_md, skip), show_info))
     return hits
 
 

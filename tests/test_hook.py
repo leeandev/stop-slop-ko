@@ -72,6 +72,21 @@ class Route(unittest.TestCase):
         self.assertIsNone(self.kind("이 CSV의 칼럼 이름 수정해줘"))
         self.assertEqual(self.kind("신문 칼럼 써줘"), "prose")
 
+    def test_data_column_with_particle_not_prose(self):
+        for p in ["칼럼을 추가해서 표 수정해줘", "DB 칼럼을 정리해줘"]:
+            self.assertIsNone(self.kind(p, jasoseo=False), p)
+
+    def test_work_reports_with_word_between_not_prose(self):
+        for p in ["테스트 결과 리포트 작성해줘", "버그 분석 리포트 써줘", "장애 분석 리포트 초안 써줘",
+                  "QA 리포트 정리해줘", "주간 리포트 작성해줘", "매출 분석 리포트 써줘"]:
+            self.assertNotEqual(self.kind(p), "prose", p)
+        self.assertEqual(self.kind("교양 수업 리포트 써줘"), "prose")
+
+    def test_non_dict_stdin_does_not_crash(self):
+        for raw in [b"[1,2]", b'"x"']:
+            r = subprocess.run([sys.executable, str(HOOK)], input=raw, capture_output=True)
+            self.assertEqual(r.returncode, 0, raw)
+
     def test_report_stays_gaejo(self):
         self.assertEqual(self.kind("과제 보고서 써줘"), "slop")
 

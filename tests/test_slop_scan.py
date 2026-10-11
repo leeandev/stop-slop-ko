@@ -115,6 +115,35 @@ class ParagraphGrouping(Base):
         self.assertIn("PROSE_CONNECTOR", [h[1] for h in S.prose_totals(S.split_paragraphs(paras), True)])
 
 
+class ReviewFixes(Base):
+    C3 = ["또한 하나.", "나아가 둘.", "따라서 셋."]
+
+    def write(self, name, text):
+        p = Path(tempfile.mkdtemp()) / name
+        p.write_text(text, encoding="utf-8")
+        return p
+
+    def test_md_table_cells_not_counted(self):
+        table = "\n".join(["| 항목 | 설명 |", "|---|---|"] + [f"| 항목{i} | 설명입니다 |" for i in range(4)])
+        p = self.write("t.md", "\n\n".join([FILLER] + self.C3) + "\n\n" + table + "\n")
+        self.assertIn("PROSE_CONNECTOR", [h[1] for h in S.scan(p, True, True)])
+
+    def test_txt_single_newline_paragraphs(self):
+        p = self.write("t.txt", "\n".join([FILLER] + self.C3) + "\n")
+        self.assertIn("PROSE_CONNECTOR", [h[1] for h in S.scan(p, True, True)])
+
+    def test_front_matter_skipped(self):
+        p = self.write("t.md", "---\ntitle: 새 도구 후기\n---\n\n“실패는 성공의 어머니”라는 말이 있다.\n")
+        self.assertIn("PROSE_QUOTE_OPEN", [h[1] for h in S.scan(p, True, True)])
+
+    def test_blockquote_open(self):
+        self.assertIn("PROSE_QUOTE_OPEN", self.codes(["> “실패는 성공의 어머니”", FILLER]))
+
+    def test_front_matter_still_scanned_without_prose(self):
+        p = self.write("t.md", "---\ntitle: 재택근무 — 후기\n---\n")
+        self.assertIn("EMDASH", [h[1] for h in S.scan(p, False, False)])
+
+
 class Cli(Base):
     def run_cli(self, *args):
         return subprocess.run([sys.executable, str(SCRIPT), *args], capture_output=True)
