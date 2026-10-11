@@ -1,15 +1,15 @@
 ---
 name: stop-slop-ko
-description: Use when writing, generating, or editing Korean documents meant for people (회의록, 보고서, 제안서, 설계서, 메일, 안내문, pptx/xlsx/docx 산출물) together with the docx/pptx/xlsx skills (for documents aimed at a named audience, stakeholder-brief leads and this skill runs last as the tone pass), when asked to remove "AI 티"/기계 번역투 from Korean docs, or to match an existing document/author's tone (문체 통일, 톤 맞춰줘). Triggers include /stop-slop-ko, "회의록 만들어줘", "보고서 pptx로", "AI 티 빼줘", "이 톤에 맞춰줘".
+description: Use when writing, generating, or editing Korean documents meant for people (회의록, 보고서, 제안서, 설계서, 메일, 안내문, pptx/xlsx/docx 산출물) or Korean prose (리포트, 레포트, 과제, 에세이, 칼럼, 기고문, 블로그 글, 자소서 다듬기) together with the docx/pptx/xlsx skills (for documents aimed at a named audience, stakeholder-brief leads and this skill runs last as the tone pass), when asked to remove "AI 티"/기계 번역투 from Korean docs, or to match an existing document/author's tone (문체 통일, 톤 맞춰줘). Triggers include /stop-slop-ko, "회의록 만들어줘", "보고서 pptx로", "AI 티 빼줘", "이 톤에 맞춰줘", "리포트 써줘", "블로그 글 다듬어줘".
 ---
 
 # stop-slop-ko
 
-한국어 실무문서를 처음부터 사람 손글씨처럼 쓰거나(생성), "AI가 쓴 티"를 걷어내거나(정제), 기존 문서·저자 문체에 맞추는(톤 맞춤) 하네스. 영어 원본 stop-slop을 한국어 개조식 문서에 맞게 정제한 버전.
+한국어 실무문서와 서술형 글(리포트, 에세이, 블로그, 칼럼)을 처음부터 사람 손글씨처럼 쓰거나(생성), "AI가 쓴 티"를 걷어내거나(정제), 기존 문서·저자 문체에 맞추는(톤 맞춤) 하네스. 영어 원본 stop-slop을 한국어 개조식 문서에 맞게 정제한 버전.
 
 **핵심 원칙:** 내용·근거·숫자·기술용어는 100% 보존하고 **어조·문장부호·상투구만** 손댄다. 편집 후 반드시 원본 대비 변경 범위를 검증한다.
 
-**자동 적용:** 플러그인에 들어 있는 UserPromptSubmit 훅(`hooks/stop-slop-doc-reminder.py`)이 문서 작성·수정 요청(문서 키워드 + 작성 동사)을 감지하면 이 스킬을 쓰라는 컨텍스트를 주입한다. 청중 키워드(직원 공유용, 경영진용, 브리프, 소개 자료 등)가 있으면 stakeholder-brief를 먼저 쓰라고 안내한다(같은 마켓플레이스의 stakeholder-brief 플러그인이 설치돼 있을 때). 사용자가 "stop-slop 빼고", "원문 그대로"라고 하면 훅이 조용히 빠진다.
+**자동 적용:** 플러그인에 들어 있는 UserPromptSubmit 훅(`hooks/stop-slop-doc-reminder.py`)이 문서 작성·수정 요청(문서 키워드 + 작성 동사)을 감지하면 이 스킬을 쓰라는 컨텍스트를 주입한다. 청중 키워드(직원 공유용, 경영진용, 브리프, 소개 자료 등)가 있으면 stakeholder-brief를 먼저 쓰라고 안내한다(같은 마켓플레이스의 stakeholder-brief 플러그인이 설치돼 있을 때). 리포트·에세이·블로그 글·칼럼 같은 서술형 요청이면 서술형 레지스터와 `--prose` 스캔을 안내한다. 자소서 요청은 jasoseo 플러그인이 설치·활성화돼 있으면 그쪽 몫이라 빠지고, 없으면 서술형 글로 안내한다. 사용자가 "stop-slop 빼고", "원문 그대로"라고 하면 훅이 조용히 빠진다.
 
 **라우팅(순서):** 청중이 정해진 공유용 문서(○○용, 공유용, 브리프, 소개 자료, 보고용)면 `stakeholder-brief`가 먼저 청중과 구조를 잡고, 이 스킬은 **마지막 문체 패스**로만 쓴다. 청중 재구성이 필요 없는 문서(STT로 회의록 정리, 메일 답장, 양식 채우기)는 이 스킬의 생성 모드가 단독으로 맡는다.
 
@@ -17,6 +17,7 @@ description: Use when writing, generating, or editing Korean documents meant for
 - 회의록·보고서·메일·pptx/xlsx/docx 산출물을 **새로 만들 때** → **생성 모드**
 - 초안이 "기계가 쓴/번역한 느낌"이라 다듬어야 할 때 → **정제 모드**
 - 동료가 쓴 다른 장·기존 산출물과 톤을 맞춰야 할 때 → **톤 맞춤 모드**
+- 리포트·에세이·블로그 글·칼럼·자소서 같은 **서술형 글**도 같은 세 모드로 다룬다 → `references/prose-patterns.md`
 - 대상: 한국어 개발문서(MD·README·설계서·코드주석), 고객사 소통문서(제안서·메일·pptx)
 - **안 쓰는 경우:** 영어 산문(원본 stop-slop 사용), 코드 로직 변경, 사실·내용 재작성
 
@@ -34,20 +35,23 @@ description: Use when writing, generating, or editing Korean documents meant for
 ## 생성(write-time) 모드
 문서를 새로 쓸 때 기본 적용. 파일 형식은 docx/pptx/xlsx 스킬(또는 기존 양식 + Excel COM)이, 문장은 이 스킬이 맡는다. 사후 정제보다 처음부터 안 쓰는 게 싸다.
 1. **레지스터 먼저 결정.** 기존 양식이나 이전 회차 문서(지난 회의록, 같은 시리즈 산출물)가 있으면 그 문체가 기준이다(`references/tone-extraction.md` 경량 적용). 없으면 기본값: 회의록·보고서·표·장표 = 개조식(명사 종결, `~함/됨`), 메일·안내문 = `~합니다`. 기존 문서에 섹션을 덧붙일 땐 그 문서의 종결을 따른다.
+   - **서술형 글**(리포트, 레포트, 과제, 에세이, 소논문, 칼럼, 기고문, 블로그 글, 자소서)은 문단 서술로 쓴다. 기본 종결: 리포트·에세이·칼럼·기고문·일반 블로그 = `~다`, 자소서·안내형 블로그(설치·사용법) = `~습니다`. 이때 `references/prose-patterns.md`를 읽는다.
+   - "보고서"는 개조식 그대로다. 사용자가 문단 글을 원한다고 밝혔을 때만 서술형으로 쓴다.
+   - 서술형 글에서도 사실·수치·인용·출처를 지어내지 않는다. 없으면 `[확인 필요: ...]`.
 2. **초안부터 규칙대로.** `references/ko-slop-patterns.md` A·B 신호(em-dash, 공백 가운뎃점 나열, ★·이모지, 수식기호, 번역투, 조사 앞 공백)를 쓰지 않는다. 생성 스크립트 안의 문자열 리터럴도 같은 기준.
 3. **원자료 보존.** STT 녹취, 설계서, 메일 스레드의 숫자·이름·결정사항·요구사항 번호는 그대로 옮긴다. 회의록에 발언에 없는 결정·일정·담당자를 지어내지 않는다(없으면 "미정").
 4. **파일 생성 후 스캔.** `python3 "${CLAUDE_SKILL_DIR}/scripts/slop_scan.py" <파일>`(Windows는 `python`). WARN은 생성 스크립트의 원문 문자열을 고쳐 재생성한다(생성 스크립트가 없을 때만 바이너리 사후 패치). `--info`로 INFO(판단 필요)도 훑는다.
 5. **보고.** 스캔 결과를 `PASS`/`FAIL`(WARN 건수)로 적는다. 안 돌렸으면 `NOT_RUN`.
 
 ## 정제(de-slop) 모드
-1. 문서 성격 파악(개발/고객, 개조식/서술체) → **기존 문체 존중**
+1. 문서 성격 파악(개발/고객, 개조식/서술체) → **기존 문체 존중**. 서술형 글이면 `references/prose-patterns.md`를 읽고 `--prose`로 스캔한다. 종결어미는 서술형에서도 바꾸지 않는다
 2. `references/ko-slop-patterns.md`의 신호를 탐지·치환
 3. 보존 규칙 확인(숫자·근거·표 관례·붙임 복합어)
 4. pptx면 `references/pptx-editing.md` 레시피로 안전 편집
 
 ## 톤 맞춤(tone-match) 모드
 1. 기준 샘플(맞출 대상 문서·장) 확보 — 편집 안 된 원본에서
-2. `references/tone-extraction.md`로 문체 시그니처 추출(6축)
+2. `references/tone-extraction.md`로 문체 시그니처 추출(6축, 기준 글이 서술형이면 서술형 축도)
 3. 요소별로 맞춰 재작성(정제 규칙 동시 적용), 내용 보존
 
 ## Quick Reference (상위 신호 → 조치)
@@ -66,19 +70,21 @@ description: Use when writing, generating, or editing Korean documents meant for
 
 잔여 신호 스캔은 `scripts/slop_scan.py`로 한다.
 ```
-python3 "${CLAUDE_SKILL_DIR}/scripts/slop_scan.py" FILE... [--info] [--out report.txt]
+python3 "${CLAUDE_SKILL_DIR}/scripts/slop_scan.py" FILE... [--info] [--prose] [--out report.txt]
 ```
 - Windows에서 `python3`이 없거나 Microsoft Store 안내만 뜨면 `python`으로 실행
 - 지원: docx(본문·표·머리글·각주), pptx(슬라이드 순서·표), xlsx(셀·도형), md, txt, html
 - exit 0 = PASS(WARN 없음), 1 = FAIL, 2 = 입력 오류. 한글 없는 문단, 해당없음 마커(`—`) 셀, md 코드블록은 건너뛴다
 - WARN: em-dash, ★, 장식 이모지, ÷, 공백 가운뎃점 2회 이상 나열, 이중 공백 구분자, 조사 앞 공백, 번역투 4종(`에 있어서`, `을 통하여`, `되어지`, `라 할 수 있다`)
 - INFO: 공백 가운뎃점 1회(2항목 속성 구분일 수 있음), 범위 공백, en-dash, `대비…상이`, 곡선/곧은 따옴표 혼용
+- `--prose`(서술형 글): INFO로 교훈형 마무리, "단순한 ~이 아닌", 첫 문단 명언·사전 정의, 빈 강조어, 리포트·블로그 상투구. 문서 전체 WARN으로 "~라고 생각한다" 3회 이상이면서 1,000자당 1회 이상, 연결어로 시작하는 문단 3개 이상이면서 전체 문단의 25% 이상. `--prose` 없이 돌리면 서술형 규칙은 꺼진다
 - 콘솔이 cp949라 한글이 깨지면 `--out`으로 저장 후 Read
 - 상투구·과한 명사화·3단 병렬은 스캐너가 못 잡는다. PASS여도 한 번 읽는다
 
 ## Common Mistakes
 - 생성 모드에서 스캔 없이 "정제 완료" 보고 → `slop_scan.py` 결과를 근거로 붙일 것
 - 개조식을 능동태로 갈아엎어 더 어색해짐 → 위 "한국어 함정" 참고
+- 서술형 글을 정제하며 `~습니다`를 `~다`로 바꾸거나, 교훈형 마무리를 고치려고 원문에 없는 행동·사실을 지어냄 → 종결 불변, 없으면 지우거나 묻기
 - 숫자·요구사항번호·인용을 "정리"하다 훼손 → 보존 목록 먼저 고정
 - pptx 문단 통째 교체로 서식 유실 → `run[0]` 보존 레시피 사용
 - 원본 미백업 → 되돌리기 불가. 항상 백업 먼저
