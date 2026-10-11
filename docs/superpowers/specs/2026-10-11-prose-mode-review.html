@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<title>서술형 문체 검토</title>
+<link rel="stylesheet" href="htmlplan.css">
+<script src="htmlplan.js" defer></script>
+<style>body{background:var(--paper);color:var(--ink)}</style>
+<body>
+<header>
+  <h1>stop-slop-ko 서술형 문체</h1>
+  <doc-changes new="3" changed="8"></doc-changes>
+  <details class="thread"><summary>왜 · 요청 2개</summary>
+    <doc-quote via="prompt" from="사용자">stop-slop-ko 서술형(리포트·에세이·블로그) 문체 모드 설계안 승인하고 스펙 쓰기</doc-quote>
+    <doc-quote via="prompt" from="사용자">이어서 하자</doc-quote>
+  </details>
+</header>
+<main>
+<doc-plan>
+
+  <doc-claim>
+    <p>리포트·블로그를 쓰라고 하면 Claude가 개조식이 아니라 문단 서술로 쓴다.</p>
+    <doc-mock frame="none" w="460" caption="같은 요청에 대한 지금과 바뀐 뒤의 첫 문단이다."><template>
+<div style="font:14px/1.6 system-ui;background:#fff;color:#222;padding:12px;border-radius:8px;border:1px solid #ddd">
+  <div style="font-size:12px;color:#888">지금 (개조식)</div>
+  <div data-ref="before" style="margin-bottom:10px">· 재택근무 도입 배경: 코로나19 확산<br>· 장점: 통근 시간 절감, 업무 집중도 향상</div>
+  <div style="font-size:12px;color:#888">바뀐 뒤 (서술형 ~다)</div>
+  <div data-ref="after">재택근무가 퍼진 계기는 2020년 코로나19였다. 회사가 먼저 원해서가 아니라 사무실을 열 수 없어서 시작했다.</div>
+</div></template>
+      <doc-pin ref="after" anchor="tr" title="레지스터 결정">글 종류로 서술형을 고르고 prose-patterns.md를 읽는다.</doc-pin>
+    </doc-mock>
+
+    <doc-claim>
+      <p>리포트·에세이·칼럼은 <code>~다</code>, 자소서·안내형 블로그는 <code>~습니다</code>로 쓴다.</p>
+      <doc-code title="SKILL.md 생성 모드 1단계 · sketch" lang="md">
+<script type="text/plain">
+1. **레지스터 먼저 결정.** 기존 양식·이전 글이 있으면 그 문체가 기준이다.
+   없으면 기본값:
+   - 회의록·보고서·표·장표 = 개조식(`~함/됨`), 메일·안내문 = `~합니다`
+   - 서술형(리포트, 에세이, 칼럼, 기고문, 블로그) = 문단 서술 `~다`
+   - 자소서, 안내형 블로그(설치·사용법) = 문단 서술 `~습니다`
+   서술형이면 `references/prose-patterns.md`를 읽는다.
+</script>
+      </doc-code>
+      <doc-ask id="blog">
+        <p>블로그 글의 기본 종결을 어떻게 할까요?</p>
+        <label><input type="radio" name="blog" value="split" checked> 일반 글은 <code>~다</code>, 안내형은 <code>~습니다</code> <small>글 성격으로 나눈다</small></label>
+        <label><input type="radio" name="blog" value="da"> 블로그는 모두 <code>~다</code></label>
+        <label><input type="radio" name="blog" value="ask"> 매번 사용자에게 묻는다</label>
+      </doc-ask>
+    </doc-claim>
+
+    <doc-claim>
+      <p>"보고서"는 지금처럼 개조식이다. 서술형은 리포트·과제 같은 말에서만 고른다.</p>
+      <doc-code src="plugins/stop-slop-ko/skills/stop-slop-ko/SKILL.md" lines="36"></doc-code>
+      <doc-ask id="report">
+        <p>"보고서"라는 말이 오면 어느 레지스터로 쓸까요?</p>
+        <label><input type="radio" name="report" value="gaejo" checked> 개조식 그대로 <small>회사 보고서가 대부분이다</small></label>
+        <label><input type="radio" name="report" value="ask"> 문단 글인지 사용자에게 묻는다</label>
+      </doc-ask>
+    </doc-claim>
+  </doc-claim>
+
+  <doc-claim>
+    <p>서술형 글을 다듬어도 종결어미와 내용은 그대로이고 상투구만 빠진다.</p>
+    <doc-mock frame="none" w="460" caption="정제 전후. 종결은 ~습니다 그대로다."><template>
+<div style="font:14px/1.6 system-ui;background:#fff;color:#222;padding:12px;border-radius:8px;border:1px solid #ddd">
+  <div style="font-size:12px;color:#888">전</div>
+  <div style="margin-bottom:10px">오늘은 Docker 볼륨에 대해 알아보겠습니다. … <span data-ref="cl" style="background:#fde2e2">이 글이 도움이 되셨길 바랍니다.</span></div>
+  <div style="font-size:12px;color:#888">후</div>
+  <div>Docker 컨테이너를 지우면 안의 데이터도 사라집니다. 볼륨은 이 데이터를 컨테이너 밖에 둡니다.</div>
+</div></template>
+      <doc-pin ref="cl" anchor="r" title="블로그 상투구">시작·끝 인사를 걷어낸다.</doc-pin>
+    </doc-mock>
+  </doc-claim>
+
+  <doc-claim>
+    <p><code>slop_scan.py --prose</code>가 서술형 상투 패턴을 INFO·WARN으로 알려 준다.</p>
+    <doc-mock frame="terminal" title="slop_scan.py --prose --info" w="480"><template><span class="dim">></span> slop_scan.py --prose --info report.md
+== report.md: WARN 1, INFO 2
+<span class="y">INFO</span> PROSE_LESSON  L12  …협업의 중요성을 깨달았다.
+<span class="y">INFO</span> PROSE_CLICHE_REPORT  L1  본 보고서에서는 …알아보고자 한다
+<span class="r">WARN</span> PROSE_THINK  (문서 전체)  '~라고 생각한다' 4회
+RESULT: <b>FAIL</b> (WARN 1)</template></doc-mock>
+
+    <doc-claim>
+      <p><code>--prose</code>가 없으면 결과가 지금과 똑같다.</p>
+      <doc-calls title="scan()" caption="새 규칙은 --prose일 때만 돈다.">
+<script type="text/plain">
+~ main()                                     @ plugins/stop-slop-ko/skills/stop-slop-ko/scripts/slop_scan.py:215
++   ap.add_argument("--prose")               @ plugins/stop-slop-ko/skills/stop-slop-ko/scripts/slop_scan.py:219
+~   scan(path, show_info, prose)             @ plugins/stop-slop-ko/skills/stop-slop-ko/scripts/slop_scan.py:185
++     **PROSE_RULES** (줄 단위 INFO)          @ plugins/stop-slop-ko/skills/stop-slop-ko/scripts/slop_scan.py:45
++     **prose_totals()** (문서 전체 WARN)      @ plugins/stop-slop-ko/skills/stop-slop-ko/scripts/slop_scan.py:212
+</script>
+      </doc-calls>
+    </doc-claim>
+
+    <doc-claim>
+      <p>"~라고 생각한다" 3회, 연결어 시작 문단 3개부터 WARN이다.</p>
+      <doc-code title="slop_scan.py · sketch" lang="py">
+<script type="text/plain">
+THINK_LIMIT = 3       # '~라고 생각한다/합니다' 횟수
+CONNECTOR_LIMIT = 3   # '또한/나아가/결론적으로/이처럼'으로 시작하는 문단 수
+</script>
+      </doc-code>
+      <doc-ask id="limit">
+        <p>문서 전체 WARN 기준을 몇으로 할까요?</p>
+        <div class="opts-row">
+          <label><input type="radio" name="limit" value="2"> 2</label>
+          <label><input type="radio" name="limit" value="3" checked> 3</label>
+          <label><input type="radio" name="limit" value="4"> 4</label>
+        </div>
+      </doc-ask>
+    </doc-claim>
+  </doc-claim>
+
+  <doc-claim>
+    <p>리포트·에세이·블로그 작성 요청에 훅이 stop-slop-ko를 상기시킨다.</p>
+    <doc-mock frame="terminal" title="hook --selftest" w="480"><template>"리포트 초안 써줘"           → <span class="g">slop (+서술형)</span>
+"블로그 글 다듬어줘"         → <span class="g">slop (+서술형)</span>
+"자소서 초안 써줘" jasoseo 있음 → <span class="dim">None</span>
+"자소서 초안 써줘" jasoseo 없음 → <span class="g">slop (+서술형)</span></template></doc-mock>
+
+    <doc-claim>
+      <p>자소서는 jasoseo가 설치·활성화됐을 때만 빠진다.</p>
+      <doc-code src="plugins/stop-slop-ko/hooks/stop-slop-doc-reminder.py" lines="49-53" hl="52">
+        <doc-pin line="52" tone="warn" title="지금은 무조건 빠진다">JASOSEO 매치를 설치 확인과 묶는다.</doc-pin>
+      </doc-code>
+      <doc-ask id="jas">
+        <p>jasoseo 설치 확인이 실패하면 어떻게 할까요?</p>
+        <label><input type="radio" name="jas" value="absent" checked> 미설치로 보고 상기 메시지를 낸다</label>
+        <label><input type="radio" name="jas" value="skip"> 지금처럼 끼어들지 않는다</label>
+      </doc-ask>
+    </doc-claim>
+  </doc-claim>
+
+  <doc-claim aux="shared">
+    <p>공유: 서술형 패턴 문서 하나와 테스트.</p>
+    <doc-tree>
+<script type="text/plain">
+plugins/stop-slop-ko/skills/stop-slop-ko/
+  references/
+    + prose-patterns.md      # 공통 8개 + 리포트·블로그·칼럼 상투구
+    ~ tone-extraction.md     # 서술형 시그니처 항목
+  ~ SKILL.md
+  ~ scripts/slop_scan.py
+tests/
+  + test_slop_scan.py
+  + scenarios/prose.md       # 블로그 정제, 리포트 정제
+</script>
+    </doc-tree>
+  </doc-claim>
+
+  <doc-claim aux="scope">
+    <p>바뀌지 않는 것.</p>
+    <ul>
+      <li>jasoseo 플러그인과 <code>jasoseo-style.md</code>: 단독 동작을 위해 그대로 둔다.</li>
+      <li>AI 탐지기 회피: README와 스킬에 쓰지 않는다.</li>
+      <li>영문 글, 소설·시, 참고문헌 형식.</li>
+      <li>개조식 문서의 기존 규칙과 <code>--prose</code> 없는 스캔 결과.</li>
+    </ul>
+  </doc-claim>
+
+</doc-plan>
+</main>
+</body></html>

@@ -4,7 +4,7 @@
 docx/pptx/xlsx/md/txt/html 본문을 문단(셀) 단위로 뽑아 references/ko-slop-patterns.md의
 기계 판정 가능한 신호만 찾는다. 번역투·상투구 판단은 사람(모델) 몫.
 
-usage: python slop_scan.py FILE [FILE ...] [--info] [--out report.txt]
+usage: python slop_scan.py FILE [FILE ...] [--info] [--prose] [--out report.txt]
 exit : 0 = WARN 없음(PASS), 1 = WARN 있음(FAIL), 2 = 입력 오류
 """
 import argparse
@@ -44,6 +44,90 @@ RULES = [
     ("RANGE_SPACE", "INFO", re.compile(r"\d[A-Za-z%]* ~ \d"), "범위 공백: 붙이면 깔끔(1K~20K)"),
     ("ENDASH", "INFO", re.compile(r" – "), "산문 속 en-dash"),
 ]
+
+# --prose: 서술형 글(리포트, 에세이, 자소서, 블로그, 칼럼). 줄 단위는 INFO, 판단은 사람이.
+PROSE_RULES = [
+    ("PROSE_LESSON", "INFO", re.compile(r"깨달았|깨닫게\s*되|중요성을\s*(알게|배웠|배우게|느꼈|실감)|교훈을\s*(얻|배)"),
+     "교훈형 마무리: 그 뒤 실제로 바뀐 행동이나 사실로"),
+    ("PROSE_NOTJUST", "INFO", re.compile(r"단순(한|히)\s[^.!?\n]{0,30}?아(닌|니라|니었)"),
+     "'단순한 ~이 아닌' 대비 틀: 사실만 남기기"),
+    ("PROSE_EMPTY_EMPH", "INFO", re.compile(r"(?<![가-힣])(정말|매우|굉장히|진정한|진정으로|무엇보다)(?=\s)"),
+     "빈 강조어: 지우거나 숫자·사실로"),
+    ("PROSE_CLICHE_REPORT", "INFO",
+     re.compile(r"본\s*(보고서|리포트|레포트|글)에서는|알아보고자\s*한다|이상으로\s*[^.\n]{0,20}살펴보았|시사하는\s*바가\s*(크|많)"),
+     "리포트 상투구: 바로 주장·사실로 시작/끝"),
+    ("PROSE_CLICHE_BLOG", "INFO",
+     re.compile(r"오늘은\s[^.\n]{0,30}알아보(겠|도록|려고)|도움이\s*되(셨|었)(길|으면)|시작해\s*볼까요|꿀팁"),
+     "블로그 상투구: 인사 대신 본론"),
+]
+QUOTE_OPEN = re.compile(r"^\s*(>\s*)?[“\"「『‘']|사전적\s*(의미|정의)|사전에\s*(따르면|서는)|(이)?라는\s*말(이\s*있|처럼)")
+THINK = re.compile(r"[다라]고\s*생각(한다|합니다|했다|했습니다|해요)")
+CONNECTOR = re.compile(r"^\s*(또한|나아가|더불어|결론적으로|이처럼|이를\s*통해|따라서|그러므로|뿐만\s*아니라)[,\s]")
+THINK_MIN, THINK_PER_CHARS = 3, 1000
+CONNECTOR_MIN, CONNECTOR_RATIO = 3, 0.25
+
+
+def is_heading(text):
+    return text.lstrip().startswith("#")
+
+
+LIST_ITEM = re.compile(r"^\s*([-*+]|\d+[.)])\s")
+
+
+def front_matter_end(path):
+    """md 머리말(--- ... ---)의 마지막 줄 번호. 없으면 0."""
+    lines = Path(path).read_text(encoding="utf-8").splitlines()
+    if not lines or lines[0].strip() != "---":
+        return 0
+    for n, line in enumerate(lines[1:], 2):
+        if line.strip() == "---":
+            return n
+    return 0
+
+
+def split_paragraphs(paras, group_lines=False, skip_until=0):
+    """판정용 문단 목록. 셀 안의 빈 줄은 문단을 나누고, md는 빈 줄 없이 이어진 줄을 한 문단으로 묶는다.
+    제목 줄과 목록 항목은 따로 세고, 표 셀과 머리말(skip_until 줄까지)은 문단으로 세지 않는다."""
+    out, prev_n = [], None
+    for where, text in paras:
+        if where.endswith("(표)"):
+            prev_n = None
+            continue
+        line_no = re.match(r"L(\d+)", where)
+        if line_no and int(line_no.group(1)) <= skip_until:
+            continue
+        m = re.fullmatch(r"L(\d+)", where) if group_lines else None
+        n = int(m.group(1)) if m else None
+        alone = is_heading(text) or LIST_ITEM.match(text)
+        if (n is not None and prev_n is not None and n == prev_n + 1 and not alone and out
+                and not is_heading(out[-1][1]) and not LIST_ITEM.match(out[-1][1])):
+            out[-1] = (out[-1][0], out[-1][1] + " " + text.strip())
+        else:
+            out.extend((where, part) for part in re.split(r"\n\s*\n", text) if HANGUL.search(part))
+        prev_n = n
+    return out
+
+
+def prose_totals(paras, show_info):
+    """문서 전체 기준 서술형 신호. paras = [(where, text)] (한글 있는 본문 문단)."""
+    hits = []
+    body = [(w, t) for w, t in paras if not is_heading(t)]
+    if not body:
+        return hits
+    first_w, first_t = body[0]
+    if show_info and QUOTE_OPEN.search(first_t):
+        hits.append(("INFO", "PROSE_QUOTE_OPEN", first_w, first_t.strip()[:50], "명언·사전 정의로 시작: 장면이나 사실로"))
+    chars = sum(len(t) for _w, t in body)
+    think = sum(len(THINK.findall(t)) for _w, t in body)
+    if think >= THINK_MIN and think * THINK_PER_CHARS >= chars:
+        rate = think * THINK_PER_CHARS / chars
+        hits.append(("WARN", "PROSE_THINK", "(문서 전체)", f"'~라고 생각한다' {think}회 / 1,000자당 {rate:.1f}회 ({chars}자)",
+                     "사실·행동으로 말하거나 단정"))
+    conn = sum(1 for _w, t in body if CONNECTOR.search(t))
+    if conn >= CONNECTOR_MIN and conn >= CONNECTOR_RATIO * len(body):
+        hits.append(("WARN", "PROSE_CONNECTOR", "(문서 전체)", f"연결어로 시작하는 문단 {len(body)}개 중 {conn}개",
+                     "꼭 필요한 곳 하나만 남기기"))
+    return hits
 
 
 def is_marker(text):
@@ -182,18 +266,20 @@ EXTRACTORS = {".docx": extract_docx, ".pptx": extract_pptx, ".xlsx": extract_xls
               ".md": extract_md, ".txt": extract_md, ".html": extract_html, ".htm": extract_html}
 
 
-def scan(path, show_info):
-    hits, quotes = [], {"curly": 0, "straight": 0}
+def scan(path, show_info, prose=False):
+    hits, quotes, paras = [], {"curly": 0, "straight": 0}, []
+    rules = RULES + PROSE_RULES if prose else RULES
     for where, text in EXTRACTORS[path.suffix.lower()](path):
         if not text.strip() or is_marker(text):
             continue
         # 한글 없는 순수 영문/코드 셀은 대상 아님
         if not HANGUL.search(text):
             continue
+        paras.append((where, text))
         quotes["curly"] += len(re.findall(r"[“”]", text))
         quotes["straight"] += text.count('"')
         seen_middot2 = False
-        for code, level, rx, hint in RULES:
+        for code, level, rx, hint in rules:
             if code == "MIDDOT_SPACED1" and seen_middot2:
                 continue
             m = rx.search(text)
@@ -209,6 +295,11 @@ def scan(path, show_info):
     if quotes["curly"] and quotes["straight"] and show_info:
         hits.append(("INFO", "QUOTE_MIX", "(문서 전체)",
                      f"곡선 {quotes['curly']} / 곧은 {quotes['straight']}", "문서 기존 관례로 통일"))
+    if prose:
+        # txt는 줄바꿈 하나로 문단을 나누는 글(웹 폼·HWP에서 복사)이 많아 묶지 않는다
+        is_md = path.suffix.lower() == ".md"
+        skip = front_matter_end(path) if is_md else 0
+        hits.extend(prose_totals(split_paragraphs(paras, is_md, skip), show_info))
     return hits
 
 
@@ -216,6 +307,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("files", nargs="+")
     ap.add_argument("--info", action="store_true", help="INFO(판단 필요) 항목도 표시")
+    ap.add_argument("--prose", action="store_true", help="서술형 글(리포트·에세이·블로그) 규칙도 검사")
     ap.add_argument("--out", help="리포트를 UTF-8 파일로 저장(콘솔 cp949 회피)")
     args = ap.parse_args()
 
@@ -229,7 +321,7 @@ def main():
             bad_input = True
             continue
         try:
-            hits = scan(path, args.info)
+            hits = scan(path, args.info, args.prose)
         except (zipfile.BadZipFile, ET.ParseError, KeyError, UnicodeDecodeError) as e:
             lines.append(f"[ERROR] {f}: {type(e).__name__}: {e}")
             bad_input = True
