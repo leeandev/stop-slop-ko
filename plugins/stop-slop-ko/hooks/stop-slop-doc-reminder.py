@@ -20,7 +20,11 @@ OPT_OUT = re.compile(r"stop-?slop[^\n]{0,15}(빼|없이|말고|제외|끄)|원�
 # 자소서는 jasoseo가 설치·활성화돼 있으면 그쪽 몫. 없으면 서술형 글로 본다.
 JASOSEO = re.compile(r"자소서|자기\s*소개서")
 # 서술형 글. 개조식 문서 키워드(FORMAL)가 같이 오면 개조식이 이긴다("과제 보고서").
-PROSE = re.compile(r"리포트|레포트|에세이|과제|소논문|독후감|감상문|블로그\s*(글|포스트|포스팅)|칼럼|기고문?")
+# "과제"만으로는 회사 업무 과제와 구분이 안 되어 학교 맥락이 붙을 때만 본다.
+PROSE = re.compile(r"리포트|레포트|에세이|과제물|(수업|대학|학교|교양|전공)\s*과제|과제\s*(글|리포트|레포트|에세이)|"
+                   r"소논문|독후감|감상문|블로그\s*(글|포스트|포스팅)|칼럼|기고문?")
+# 개발 산출물 리포트는 서술형 글이 아니다.
+DEV_REPORT = re.compile(r"(버그|에러|오류|장애|테스트|커버리지|성능|빌드|크래시|bug|error|test|coverage|crash)\s*(리포트|레포트)", re.I)
 FORMAL = re.compile(r"회의록|보고서|주간보고|제안서|기획서|계획서|설계서|정의서|결과서|명세서|매뉴얼|안내문|공문|"
                     r"장표|슬라이드|\bppt|pptx|파워포인트|엑셀|xlsx|스프레드시트", re.I)
 JASOSEO_ID = "jasoseo@stop-slop-ko"
@@ -92,7 +96,7 @@ def route(prompt, jasoseo=None):
         return "brief", aud.group(0)
     tone = TONE.search(prompt)
     prose = jas or PROSE.search(prompt)
-    if prose and (verb or tone) and not FORMAL.search(prompt):
+    if prose and (verb or tone) and not FORMAL.search(prompt) and not DEV_REPORT.search(prompt):
         return "prose", prose.group(0)
     if tone:
         return "slop", tone.group(0)

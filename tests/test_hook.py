@@ -52,6 +52,15 @@ class Route(unittest.TestCase):
         self.assertEqual(self.kind("리포트 초안 써줘"), "prose")
         self.assertEqual(self.kind("블로그 글 다듬어줘"), "prose")
 
+    def test_dev_prompts_not_prose(self):
+        for p in ["버그 리포트 작성해줘", "테스트 커버리지 리포트 생성해줘", "에러 리포트 정리해줘",
+                  "이번 과제 코드 수정해줘", "과제 목록 정리해줘"]:
+            self.assertIsNone(self.kind(p), p)
+
+    def test_academic_task_prose(self):
+        self.assertEqual(self.kind("수업 과제 글 써줘"), "prose")
+        self.assertEqual(self.kind("과제물 다듬어줘"), "prose")
+
     def test_report_stays_gaejo(self):
         self.assertEqual(self.kind("과제 보고서 써줘"), "slop")
 
