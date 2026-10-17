@@ -46,6 +46,54 @@ class JasoseoActive(unittest.TestCase):
         self.assertFalse(H.jasoseo_active(home("{broken")))
 
 
+def project(settings=None, local=None):
+    d = Path(tempfile.mkdtemp())
+    (d / ".claude").mkdir()
+    if settings is not None:
+        (d / ".claude" / "settings.json").write_text(settings, encoding="utf-8")
+    if local is not None:
+        (d / ".claude" / "settings.local.json").write_text(local, encoding="utf-8")
+    return d
+
+
+def enabled(v):
+    return json.dumps({"enabledPlugins": {"jasoseo@stop-slop-ko": v}})
+
+
+def installed_in(path, scope="project"):
+    return json.dumps({"version": 2, "plugins": {"jasoseo@stop-slop-ko": [
+        {"scope": scope, "projectPath": str(path)}]}})
+
+
+class JasoseoScope(unittest.TestCase):
+    def test_project_install_inside_project(self):
+        proj = project()
+        self.assertTrue(H.jasoseo_active(home(installed_in(proj)), cwd=proj / "sub"))
+
+    def test_project_install_other_cwd(self):
+        proj, other = project(), project()
+        self.assertFalse(H.jasoseo_active(home(installed_in(proj)), cwd=other))
+        self.assertFalse(H.jasoseo_active(home(installed_in(proj, "local")), cwd=other))
+
+    def test_project_settings_disable(self):
+        proj = project(settings=enabled(False))
+        self.assertFalse(H.jasoseo_active(home(INSTALLED), cwd=proj))
+
+    def test_local_settings_beat_project_and_user(self):
+        proj = project(settings=enabled(False), local=enabled(True))
+        self.assertTrue(H.jasoseo_active(home(INSTALLED, enabled(False)), cwd=proj))
+
+    def test_subfolder_reads_git_root_settings(self):
+        proj = project(settings=enabled(False))
+        (proj / ".git").mkdir()
+        (proj / "sub" / "deep").mkdir(parents=True)
+        self.assertFalse(H.jasoseo_active(home(INSTALLED), cwd=proj / "sub" / "deep"))
+
+    def test_broken_project_settings_is_absent(self):
+        proj = project(settings="{broken")
+        self.assertFalse(H.jasoseo_active(home(INSTALLED), cwd=proj))
+
+
 class Route(unittest.TestCase):
     def kind(self, prompt, jasoseo=True):
         r = H.route(prompt, jasoseo=jasoseo)
@@ -86,6 +134,11 @@ class Route(unittest.TestCase):
         for raw in [b"[1,2]", b'"x"']:
             r = subprocess.run([sys.executable, str(HOOK)], input=raw, capture_output=True)
             self.assertEqual(r.returncode, 0, raw)
+
+    def test_gigo(self):
+        self.assertEqual(self.kind("신문 기고 글 써줘"), "prose")
+        self.assertEqual(self.kind("기고문 다듬어줘"), "prose")
+        self.assertNotEqual(self.kind("기고만장한 상사한테 보낼 메일 써줘"), "prose")
 
     def test_report_stays_gaejo(self):
         self.assertEqual(self.kind("과제 보고서 써줘"), "slop")

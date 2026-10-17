@@ -22,7 +22,7 @@ JASOSEO = re.compile(r"자소서|자기\s*소개서")
 # 서술형 글. "과제"만으로는 회사 업무 과제와 구분이 안 되어 학교 맥락이 붙을 때만 본다.
 # 데이터 표의 "칼럼 이름/추가" 같은 말은 빼고, "문단 글/서술형"은 사용자가 문단 글을 원한다는 뜻으로 본다.
 PROSE_STRONG = re.compile(r"에세이|과제물|(수업|대학|학교|교양|전공)\s*과제|과제\s*(글|리포트|레포트|에세이)|소논문|독후감|감상문|"
-                          r"블로그\s*(글|포스트|포스팅)|칼럼|기고문?|"
+                          r"블로그\s*(글|포스트|포스팅)|칼럼|기고(?!만장)문?|"
                           r"문단\s*글|서술형")
 # 리포트·레포트는 개조식 문서 키워드(FORMAL)나 개발 리포트와 같이 오면 서술형으로 보지 않는다("리포트 형식 보고서", "버그 리포트").
 PROSE_WEAK = re.compile(r"리포트|레포트")
@@ -69,32 +69,57 @@ MESSAGES = {
 }
 
 
-def jasoseo_active(home=None):
-    """jasoseo 플러그인이 설치되고 꺼지지 않았는지. 확인 실패는 미설치로 본다."""
+def under(path, root):
+    try:
+        Path(path).resolve().relative_to(Path(root).resolve())
+        return True
+    except (ValueError, OSError):
+        return False
+
+
+def project_root(cwd):
+    """프로젝트 설정을 읽을 폴더: cwd 위쪽의 git 저장소 루트, 없으면 cwd."""
+    for d in [cwd, *cwd.parents]:
+        if (d / ".git").exists():
+            return d
+    return cwd
+
+
+def jasoseo_active(home=None, cwd=None):
+    """jasoseo 플러그인이 이 작업 폴더에서 설치되고 꺼지지 않았는지. 확인 실패는 미설치로 본다.
+    project·local 범위 설치는 cwd가 그 프로젝트 안일 때만 친다. 활성 여부는 user < project < local 순으로 덮어쓰고,
+    project·local 설정은 git 루트(없으면 cwd)의 .claude/에서 읽는다."""
     home = Path(home) if home else Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
+    cwd = Path(cwd) if cwd else Path.cwd()
     try:
         data = json.loads((home / "plugins" / "installed_plugins.json").read_text(encoding="utf-8"))
-        if not data.get("plugins", {}).get(JASOSEO_ID):
+        entries = data.get("plugins", {}).get(JASOSEO_ID) or []
+        if not any(e.get("scope", "user") == "user" or not e.get("projectPath") or under(cwd, e["projectPath"])
+                   for e in entries if isinstance(e, dict)):
             return False
     except Exception:
         return False
-    settings_path = home / "settings.json"
-    if not settings_path.exists():
-        return True
-    try:
-        settings = json.loads(settings_path.read_text(encoding="utf-8"))
-        return settings.get("enabledPlugins", {}).get(JASOSEO_ID) is not False
-    except Exception:
-        return False
+    root = project_root(cwd)
+    enabled = True
+    for path in [home / "settings.json", root / ".claude" / "settings.json", root / ".claude" / "settings.local.json"]:
+        if not path.exists():
+            continue
+        try:
+            value = json.loads(path.read_text(encoding="utf-8")).get("enabledPlugins", {}).get(JASOSEO_ID)
+        except Exception:
+            return False
+        if value is not None:
+            enabled = value is not False
+    return enabled
 
 
-def route(prompt, jasoseo=None):
-    """(경로, 키워드) 또는 None. jasoseo=None이면 설치 여부를 직접 확인한다."""
+def route(prompt, jasoseo=None, cwd=None):
+    """(경로, 키워드) 또는 None. jasoseo=None이면 cwd 기준으로 설치 여부를 직접 확인한다."""
     head = prompt.lstrip()
     if head.startswith("/stop-slop-ko") or head.startswith("/jasoseo") or OPT_OUT.search(prompt):
         return None
     jas = JASOSEO.search(prompt)
-    if jas and (jasoseo if jasoseo is not None else jasoseo_active()):
+    if jas and (jasoseo if jasoseo is not None else jasoseo_active(cwd=cwd)):
         return None
     if head.startswith("/stakeholder-brief"):
         return "brief_explicit", "/stakeholder-brief"
@@ -144,6 +169,8 @@ SELFTEST = [
     ("에세이 다듬어줘", "prose"),
     ("블로그 글 AI 티 빼줘", "prose"),
     ("칼럼 써줘", "prose"),
+    ("기고 글 써줘", "prose"),
+    ("기고만장한 상사한테 보낼 메일 써줘", "slop"),
     ("과제 보고서 써줘", "slop"),
     ("리포트 읽고 요약만 해줘", None),
     ("자소서 초안 써줘", "prose", False),
@@ -174,7 +201,7 @@ def main():
         sys.exit(0)
     if not isinstance(hook, dict):
         sys.exit(0)
-    hit = route(hook.get("prompt") or "")
+    hit = route(hook.get("prompt") or "", cwd=hook.get("cwd") or None)
     if not hit:
         sys.exit(0)
     kind, kw = hit
