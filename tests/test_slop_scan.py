@@ -67,6 +67,30 @@ class LineInfo(Base):
         self.assertFalse(self.codes(["협업의 중요성을 깨달았다."], info=False))
 
 
+class Minor121(Base):
+    def test_notjust_variants(self):
+        for line in ["단순 작업이 아니라 설계였다.", "그저 숫자가 아닌 사람 이야기다.",
+                     "단지 비용 절감이 아니라 방향 전환이다.", "재택근무는 비용 절감에 그치지 않고 채용까지 바꿨다."]:
+            self.assertIn("PROSE_NOTJUST", self.codes([line]), line)
+
+    def test_notjust_plain_not_hit(self):
+        self.assertNotIn("PROSE_NOTJUST", self.codes(["작업이 단순해서 금방 끝났다."]))
+
+    def test_think_variants_counted(self):
+        variants = ["이 방식이 맞다고 생각된다.", "이 방식이 맞다는 생각이 든다.", "이 방식이 맞다고 본다.",
+                    "이 방식이 맞다고 봅니다."]
+        for v in variants:
+            self.assertIn("PROSE_THINK", self.codes(body(700) + [v] * 3), v)
+
+    def test_conditional_not_counted(self):
+        lines = ["A가 맞다고 본다면 대조군으로 검증한다.", "B가 맞다고 생각한다면 표본을 늘린다.",
+                 "C가 맞다는 생각이 든다면 반례부터 찾는다."]
+        self.assertNotIn("PROSE_THINK", self.codes(body(700) + lines))
+
+    def test_plain_bonda_not_counted(self):
+        self.assertNotIn("PROSE_THINK", self.codes(body(700) + ["결과를 다시 본다."] * 3))
+
+
 class ThinkWarn(Base):
     T = "나는 이 방식이 맞다고 생각한다."
 
