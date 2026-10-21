@@ -22,7 +22,8 @@ JASOSEO = re.compile(r"자소서|자기\s*소개서")
 # 서술형 글. "과제"만으로는 회사 업무 과제와 구분이 안 되어 학교 맥락이 붙을 때만 본다.
 # 데이터 표의 "칼럼 이름/추가" 같은 말은 빼고, "문단 글/서술형"은 사용자가 문단 글을 원한다는 뜻으로 본다.
 PROSE_STRONG = re.compile(r"에세이|과제물|(수업|대학|학교|교양|전공)\s*과제|과제\s*(글|리포트|레포트|에세이)|소논문|독후감|감상문|"
-                          r"블로그\s*(글|포스트|포스팅)|칼럼|기고(?!만장)문?|"
+                          # "넘기고 ", "남기고 " 같은 동사 활용과 "기고만장"은 빼고, "신문 기고", "특별기고를", "기고할"은 잡는다.
+                          r"블로그\s*(글|포스트|포스팅)|칼럼|(?<![가-힣])기고(?!만장)|기고(?!만장)(?=[가-힣])|"
                           r"문단\s*글|서술형")
 # 리포트·레포트는 개조식 문서 키워드(FORMAL)나 개발 리포트와 같이 오면 서술형으로 보지 않는다("리포트 형식 보고서", "버그 리포트").
 PROSE_WEAK = re.compile(r"리포트|레포트")
@@ -35,6 +36,9 @@ DATA_COLUMN = re.compile(r"칼럼[을를이가은는의]?\s*(이름|명|추가|�
 FORMAL = re.compile(r"회의록|보고서|주간보고|제안서|기획서|계획서|설계서|정의서|결과서|명세서|매뉴얼|안내문|공문|"
                     r"장표|슬라이드|\bppt|pptx|파워포인트|엑셀|xlsx|스프레드시트", re.I)
 JASOSEO_ID = "jasoseo@stop-slop-ko"
+# 백그라운드 작업 알림과 서브에이전트 보고는 이 태그로 시작하는 프롬프트로 들어온다.
+NOTICE_HEAD = ("<task-notification>", "<agent-message")
+NOTICE_BLOCK = re.compile(r"<(task-notification|agent-message)\b.*?</\1>", re.S)
 
 # 플러그인 루트 기준: hooks/ 옆의 skills/stop-slop-ko/scripts/slop_scan.py
 SCANNER = (Path(__file__).resolve().parent.parent / "skills" / "stop-slop-ko" / "scripts" / "slop_scan.py").as_posix()
@@ -115,7 +119,11 @@ def jasoseo_active(home=None, cwd=None):
 
 def route(prompt, jasoseo=None, cwd=None):
     """(경로, 키워드) 또는 None. jasoseo=None이면 cwd 기준으로 설치 여부를 직접 확인한다."""
+    # 알림 블록을 빼고 남는 글만 사용자 요청으로 본다. 닫는 태그 없이 알림으로 시작해도 알림으로 친다.
+    prompt = NOTICE_BLOCK.sub(" ", prompt)
     head = prompt.lstrip()
+    if not head or head.startswith(NOTICE_HEAD):
+        return None
     if head.startswith("/stop-slop-ko") or head.startswith("/jasoseo") or OPT_OUT.search(prompt):
         return None
     jas = JASOSEO.search(prompt)
@@ -173,6 +181,10 @@ SELFTEST = [
     ("기고만장한 상사한테 보낼 메일 써줘", "slop"),
     ("과제 보고서 써줘", "slop"),
     ("리포트 읽고 요약만 해줘", None),
+    ("compact 하거나 handoff로 넘기고 새 세션에서 정리해야 하나", None),
+    ("기고문 써줘", "prose"),
+    ("<task-notification> 공유용 문서 정리 완료 </task-notification>", None),
+    ("신문 기고를 작성해줘", "prose"),
     ("자소서 초안 써줘", "prose", False),
     ("자기소개서 1번 다듬어줘", "prose", False),
 ]

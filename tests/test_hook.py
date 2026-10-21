@@ -130,6 +130,24 @@ class Route(unittest.TestCase):
             self.assertNotEqual(self.kind(p), "prose", p)
         self.assertEqual(self.kind("교양 수업 리포트 써줘"), "prose")
 
+    def test_verb_ending_not_contribution(self):
+        self.assertIsNone(self.kind("compact 하거나 handoff로 넘기고 새 세션에서 정리해야 하나"))
+        self.assertEqual(self.kind("기고문 써줘"), "prose")
+        self.assertEqual(self.kind("기고 글 다듬어줘"), "prose")
+        self.assertEqual(self.kind("신문 기고를 작성해줘"), "prose")
+        self.assertEqual(self.kind("잡지에 기고할 원고 다듬어줘"), "prose")
+        self.assertEqual(self.kind("특별기고를 작성해줘"), "prose")
+        self.assertIsNone(self.kind("경고 로그를 남기고 건너뛰게 수정해줘"))
+
+    def test_task_notification_ignored(self):
+        p = "<task-notification>\n<summary>내부 공유용 문서 정리 완료</summary>\n</task-notification>"
+        self.assertIsNone(self.kind(p))
+        self.assertIsNone(self.kind('<agent-message from="a1">\n[Subagent hand-back] 블로그 글 정리 완료\n</agent-message>'))
+        self.assertEqual(self.kind("다음 결과를 보고서로 정리해줘:\n" + p), "slop")
+        self.assertEqual(self.kind(p + "\n위 결과를 보고서로 정리해줘"), "slop")
+        self.assertIsNone(self.kind('<agent-message from="a1">\n[Subagent hand-back] 블로그 글 정리 완료'))
+        self.assertIsNone(self.kind("이거 뭐야?\n" + p))
+
     def test_non_dict_stdin_does_not_crash(self):
         for raw in [b"[1,2]", b'"x"']:
             r = subprocess.run([sys.executable, str(HOOK)], input=raw, capture_output=True)
