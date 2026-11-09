@@ -25,6 +25,10 @@ PR = "{http://schemas.openxmlformats.org/package/2006/relationships}"
 HANGUL = re.compile(r"[가-힣]")
 EMOJI = re.compile("[✅❌❎✨⭐\U0001F300-\U0001FAFF]")
 PARTICLE = re.compile(r"""[A-Za-z0-9%)\]"'”’] (은|는|이|가|을|를|에|에서|에게|와|과|로|으로|의)(?=[\s,.)]|$)""")
+# GitHub 자동 링크 뒤 공백은 링크를 지키는 표기다. `#123의`·`owner/repo#123의`·`GH-123의` 는 링크가 되지 않고,
+# 맨 URL 은 뒤에 붙인 조사까지 주소로 삼는다. 조사 공백 검사 전에 같은 길이의 자리표시자로 가린다.
+# 마크다운 링크 `[문서](https://…) 에서` 는 `)` 가 남아 계속 잡힌다(붙여도 링크가 유지된다).
+AUTOLINK = re.compile(r"(?:[\w.-]+/[\w.-]+)?#\d+|\bGH-\d+|https?://[^\s)]+")
 
 # (code, level, regex, 설명). 붙임 복합어 middot(성능·품질)·화살표·※는 신호 아님.
 RULES = [
@@ -284,7 +288,8 @@ def scan(path, show_info, prose=False):
         for code, level, rx, hint in rules:
             if code == "MIDDOT_SPACED1" and seen_middot2:
                 continue
-            m = rx.search(text)
+            target = AUTOLINK.sub(lambda r: "↗" * len(r.group()), text) if code == "PARTICLE_SPACE" else text
+            m = rx.search(target)
             if not m:
                 continue
             if code == "MIDDOT_SPACED2":
