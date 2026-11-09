@@ -178,5 +178,21 @@ class Cli(Base):
         self.assertEqual(self.run_cli(str(p), "--prose").returncode, 1)
 
 
+class AutolinkParticleSpace(Base):
+    """GitHub 자동 링크(#123, owner/repo#123, GH-123, 맨 URL) 뒤 조사 공백은 붙이면 링크가 깨지므로 잡지 않는다."""
+
+    def test_issue_refs_and_urls_keep_space(self):
+        lines = ["#123 의 결정은 owner/repo#45 와 GH-678 을 따르고 https://github.com/owner/repo/issues/9 에서 논의했다."]
+        self.assertNotIn("PARTICLE_SPACE", self.codes(lines, prose=False))
+
+    def test_plain_word_after_ref_still_flagged(self):
+        lines = ["#123 의 결정에 따라 API 가 바뀌었다."]
+        self.assertIn("PARTICLE_SPACE", self.codes(lines, prose=False))
+
+    def test_markdown_link_still_flagged(self):
+        lines = ["자세한 내용은 [설계 문서](https://github.com/owner/repo/wiki) 에서 본다."]
+        self.assertIn("PARTICLE_SPACE", self.codes(lines, prose=False))
+
+
 if __name__ == "__main__":
     unittest.main()
